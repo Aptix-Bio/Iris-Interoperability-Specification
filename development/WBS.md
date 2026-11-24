@@ -37,7 +37,7 @@ flowchart LR
 | Sprint | Milestone (what is shown working) | Status |
 |---|---|---|
 | SpecScaffold_1 | `ctest` green on a header generated from `spec/*.json`; the generator refuses a removed key, a retyped key and a duplicate name | `doing` (PR #1 open) |
-| SpecLintAndDocument_2 | `cmake --workflow --preset gates` runs the linter, the generator check, the tests and the AsciiDoc render, locally and on CI, and CI publishes the HTML and PDF | `doing` |
+| SpecLintAndDocument_2 | `cmake --workflow --preset gates` runs the linter, the generator check, the tests and the AsciiDoc render, locally and on CI, and CI publishes the HTML and PDF | `doing` (PR #2 open, CI green) |
 | TypedAttributes_3 | a vendor's C++ writes `attributes[I2S::ScanTime] = std::chrono::system_clock::now();` with completion and compile-time type checking; every value encoded as its DICOM VR; `I2S::Attributes` iterates, and adapts to and from IFE's attribute pairs | `todo` |
 | VocabularyFromScanners_4 | the keys every scanner family writes at scan time (stain, scan date and time, optics, resolution) generated and tested, each DICOM mapping verified | `todo` |
 | IdentityClasses_5 | every key's identity class decided by the maintainer; no key left `UNDER_REVIEW` that a release depends on | `blocked` on the maintainer's answers (Open questions) |
@@ -217,8 +217,11 @@ the HTML and PDF. Branch `feature/SpecLintAndDocument_2`, pull request based on
   single step after the toolchain steps (uv, Ruby with `bundler-cache` from
   `Gemfile.lock`), and uploads `build/release/doc/` as the artifact
   `i2s-specification` [Ci_02]
-- [ ] **VERIFY:** the maintainer reads the rendered document
-- [ ] **Gate:** CI green on the pull request
+- [ ] **VERIFY:** the maintainer reads the rendered document (CI artifact
+  `i2s-specification`)
+- [x] **Gate:** CI green on pull request #2: run 45439828880 on
+  `blacksmith-2vcpu-ubuntu-2404`, Ruby 4.0.9, gates 10 of 10, artifact
+  `i2s-specification` (HTML and PDF, 68 164 bytes) uploaded
 
 ## TypedAttributes_3 — typed keys and an adapter for IFE's attribute pairs `todo` · needs SpecLintAndDocument_2
 
