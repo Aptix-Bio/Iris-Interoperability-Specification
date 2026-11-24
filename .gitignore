@@ -22,3 +22,6 @@ generated_docs/*
 # Bundler's local settings and installed gems, when installed into the tree.
 /.bundle/
 /vendor/
+
+# IDE state.
+/.idea/
