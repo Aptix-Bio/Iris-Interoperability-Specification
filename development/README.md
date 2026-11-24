@@ -17,24 +17,26 @@ flowchart LR
     G["RTM goals<br/>dated requirements"] --> R["RTM requirements"]
     R --> WBS["WBS<br/>sprint → task → step"]
     WBS -->|"evidence"| R
-    WBS -->|"one sprint, one branch"| PR["pull request<br/>milestone shown, CI green"]
+    WBS -->|"each sprint's commits"| PR["the repository's one pull request<br/>milestones shown, CI green"]
     PR -->|"merged"| WBS
 ```
 
 ## How a sprint runs
 
 A sprint is one work package of the WBS: a few days of work that ends in a
-milestone someone can see working, and one pull request.
+milestone someone can see working. The repository has one branch and one pull
+request at a time (`feature/SpecScaffold_1`, pull request #1), never stacked;
+each sprint's commits stay distinct and its WBS section intact, so the pull
+request's description lists the sprints in order.
 
-1. The branch is named after the sprint (`feature/SpecScaffold_1`), chosen
-   before the first push, since renaming a pull request's head branch closes
-   the pull request.
+1. The branch keeps its name once pushed, since renaming a pull request's head
+   branch closes the pull request.
 2. Each task starts with a test shown red, recorded with its failure; then the
    code that turns it green, with the evidence (test counts, the command run).
 3. The milestone is demonstrated: a command anyone can run, and its output.
 4. The sprint ends with a **VERIFY** step for the maintainer and a **Gate** step: CI
-   green on the pull request. Nothing from the next sprint is started on the
-   same branch.
+   green on the pull request. The next sprint starts once the previous one's
+   Gate is green, in new commits on the same branch.
 
 The pull request's description has these sections, in this order: Summary ·
 WBS (the sprint's tasks, ticked, with evidence and commit links) · RTM (rows

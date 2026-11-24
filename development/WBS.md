@@ -8,11 +8,15 @@ it are the checkable implementation, red first. Requirements live in
 
 ## Conventions
 
-- **A sprint is one work package, one branch, one pull request.** It is sized
-  to a few days *(estimate, not measured)*, ends in a milestone that can be run
-  and seen, and closes with **VERIFY** (the maintainer reviews) and **Gate** (CI green on
-  the pull request). The branch is `feature/<SprintName>_<n>`.
-  [README.md](README.md) gives the pull request's sections.
+- **A sprint is one work package with its own commits and its own section
+  here.** It is sized to a few days *(estimate, not measured)*, ends in a
+  milestone that can be run and seen, and closes with **VERIFY** (the
+  maintainer reviews) and **Gate** (CI green on the pull request).
+- **One branch and one pull request per repository** (Decision_08): until it
+  merges, every sprint is committed to `feature/SpecScaffold_1` and lands
+  through pull request #1, whose description lists the sprints in order. No
+  pull request is stacked on another. [README.md](README.md) gives the pull
+  request's sections.
 - **Red first.** A task's first step is the test shown failing, with its
   failure quoted; the task is ticked only with the green evidence and the
   commit that made it.
@@ -36,8 +40,8 @@ flowchart LR
 
 | Sprint | Milestone (what is shown working) | Status |
 |---|---|---|
-| SpecScaffold_1 | `ctest` green on a header generated from `spec/*.json`; the generator refuses a removed key, a retyped key and a duplicate name | `doing` (PR #1 open) |
-| SpecLintAndDocument_2 | `cmake --workflow --preset gates` runs the linter, the generator check, the tests and the AsciiDoc render, locally and on CI, and CI publishes the HTML and PDF | `doing` (PR #2 open, CI green) |
+| SpecScaffold_1 | `ctest` green on a header generated from `spec/*.json`; the generator refuses a removed key, a retyped key and a duplicate name | `doing` (PR #1 open, carrying every sprint) |
+| SpecLintAndDocument_2 | `cmake --workflow --preset gates` runs the linter, the generator check, the tests and the AsciiDoc render, locally and on CI, and CI publishes the HTML and PDF | `doing` (in PR #1, CI green) |
 | TypedAttributes_3 | a vendor's C++ writes `attributes[I2S::ScanTime] = std::chrono::system_clock::now();` with completion and compile-time type checking; every value encoded as its DICOM VR; `I2S::Attributes` iterates, and adapts to and from IFE's attribute pairs | `todo` |
 | VocabularyFromScanners_4 | the keys every scanner family writes at scan time (stain, scan date and time, optics, resolution) generated and tested, each DICOM mapping verified | `todo` |
 | IdentityClasses_5 | every key's identity class decided by the maintainer; no key left `UNDER_REVIEW` that a release depends on | `blocked` on the maintainer's answers (Open questions) |
@@ -124,8 +128,9 @@ is dropped; and an AsciiDoc document generated from the specification, as
 IFE's is, for a person to review (requested 2026-11-24). Milestone: `cmake
 --workflow --preset gates` runs the linter, the generator check, the tests and
 the document render in that order, locally and on Blacksmith, and CI uploads
-the HTML and PDF. Branch `feature/SpecLintAndDocument_2`, pull request based on
-`feature/SpecScaffold_1`.
+the HTML and PDF. Committed to `feature/SpecScaffold_1`, through pull request
+#1 (Decision_08); its commits were first pushed as `feature/SpecLintAndDocument_2`
+with pull request #2, which is left to be closed.
 
 - [x] **DiiRename_2.1** — commit c03ec35. Decision_06: `DigitalImageIdentifier` (`DII`) and
   `DigitalImageIdentifierIsPHI` (`DII_is_PHI`) in place in 0.1; the
@@ -219,7 +224,7 @@ the HTML and PDF. Branch `feature/SpecLintAndDocument_2`, pull request based on
   `i2s-specification` [Ci_02]
 - [ ] **VERIFY:** the maintainer reads the rendered document (CI artifact
   `i2s-specification`)
-- [x] **Gate:** CI green on pull request #2: run 45439828880 on
+- [x] **Gate:** CI green on pull request #2 (since moved onto pull request #1): run 45439828880 on
   `blacksmith-2vcpu-ubuntu-2404`, Ruby 4.0.9, gates 10 of 10, artifact
   `i2s-specification` (HTML and PDF, 68 164 bytes) uploaded
 
@@ -233,8 +238,8 @@ value under that VR, its limits, identity class and the PHI flag rule); IFE's
 ATTRIBUTES block defines the container, so I2S defines no wire format, byte
 layout or separator between pairs. Milestone: the README's two examples
 compile as tests, a value of the wrong type fails to compile naming the key and
-the type, and every value type round-trips through its DICOM text. Branch
-`feature/TypedAttributes_3`, based on `feature/SpecLintAndDocument_2`.
+the type, and every value type round-trips through its DICOM text. Committed
+to `feature/SpecScaffold_1`, through pull request #1 (Decision_08).
 
 - [ ] **DicomEncoding_3.1** — every value is text encoded as its DICOM VR
   (PS3.5 §6.2, verified with URL and date): DATE_TIME as DT
@@ -362,6 +367,7 @@ not define, under `METADATA_I2S`.
 | Decision_05 | 2026-11-24 | CI runs on Blacksmith runners |
 | Decision_06 | 2026-11-24 | `DigitalSlideIdentifier` (`DSI`) is renamed `DigitalImageIdentifier` (`DII`) and its flag `DigitalImageIdentifierIsPHI` (`DII_is_PHI`), in place in the unreleased 0.1 group with no deprecated alias; the absent-means-PHI rule is unchanged. The gate still refuses a rename: the witness was refreshed by hand, deleting the two old entries, as the reviewed act that permits this one rename before the first release |
 | Decision_07 | 2026-11-24 | No public file quotes a person; goals and decisions are stated as dated requirements, and an owner is "the maintainer". Author lines in the specification header are attribution and stay |
+| Decision_08 | 2026-11-24 | One branch and one pull request per repository, with no stacked pull requests: every I2S sprint is committed to `feature/SpecScaffold_1` and lands through pull request #1, each sprint's commits distinct and its WBS section intact |
 
 Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintainer's review:
 
