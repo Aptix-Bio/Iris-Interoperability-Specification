@@ -103,14 +103,14 @@ generator refuse a removed key, a retyped key and a duplicate name. Branch
   documentation-only changes skipped, 15-minute timeout, actions pinned by
   commit, uv and `dependencies/` cached [Ci_01]. Commit 7204884
   - [x] Rehearsed locally on macOS: the workflow's configure line, `--check`
-    and `ctest --preset release` green. Not rehearsed in a Linux container
-    *(to do on the first run)*; the image's CMake and Ninja are taken from
-    GitHub's Ubuntu 24.04 image list (CMake 3.31.6, Ninja 1.13.2, read
-    2026-11-24) on the assumption that Blacksmith's image matches it *(to
-    confirm on the first run)*
+    and `ctest --preset release` green. Not rehearsed in a Linux container;
+    the first Blacksmith run (45429051380) confirmed the image's CMake and
+    Ninja and the GCC-side compile-fail message
 - [ ] **VERIFY:** Ryan reads `spec/i2s_keys.json` and the generated header and
   answers the open questions
-- [ ] **Gate:** CI green on the pull request
+- [x] **Gate:** CI green on pull request #1: run 45429051380 on
+  `blacksmith-2vcpu-ubuntu-2404`, pytest 13 passed, `--check` current, ctest
+  7 of 7, 1 min 20 s
 
 ## VocabularyFromScanners_2 — the scan-time vocabulary `todo` · needs SpecScaffold_1
 
