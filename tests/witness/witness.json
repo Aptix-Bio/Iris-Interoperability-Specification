@@ -1,0 +1,109 @@
+{
+  "identity_classes": {
+    "NONE": "0.1",
+    "UNDER_REVIEW": "0.1"
+  },
+  "keys": {
+    "DeviceSerialNumber": {
+      "dicom": {
+        "keyword": "DeviceSerialNumber",
+        "sequence": null,
+        "tag": "(0018,1000)",
+        "vr": "LO"
+      },
+      "identity": "UNDER_REVIEW",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "TEXT"
+    },
+    "DigitalSlideIdentifier": {
+      "dicom": null,
+      "identity": "UNDER_REVIEW",
+      "multiplicity": "1",
+      "phi_flag": {
+        "absent_means_phi": true,
+        "key": "DigitalSlideIdentifierIsPHI"
+      },
+      "short_name": "DSI",
+      "since": "0.1",
+      "value_type": "TEXT"
+    },
+    "DigitalSlideIdentifierIsPHI": {
+      "dicom": null,
+      "identity": "NONE",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": "DSI_is_PHI",
+      "since": "0.1",
+      "value_type": "BOOLEAN"
+    },
+    "Manufacturer": {
+      "dicom": {
+        "keyword": "Manufacturer",
+        "sequence": null,
+        "tag": "(0008,0070)",
+        "vr": "LO"
+      },
+      "identity": "NONE",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "TEXT"
+    },
+    "ManufacturerModelName": {
+      "dicom": {
+        "keyword": "ManufacturerModelName",
+        "sequence": null,
+        "tag": "(0008,1090)",
+        "vr": "LO"
+      },
+      "identity": "NONE",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "TEXT"
+    },
+    "SoftwareVersions": {
+      "dicom": {
+        "keyword": "SoftwareVersions",
+        "sequence": null,
+        "tag": "(0018,1020)",
+        "vr": "LO"
+      },
+      "identity": "NONE",
+      "multiplicity": "1-n",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "TEXT"
+    },
+    "UniqueDeviceIdentifier": {
+      "dicom": {
+        "keyword": "UniqueDeviceIdentifier",
+        "sequence": {
+          "keyword": "UDISequence",
+          "tag": "(0018,100A)"
+        },
+        "tag": "(0018,1009)",
+        "vr": "UT"
+      },
+      "identity": "UNDER_REVIEW",
+      "multiplicity": "1-n",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "TEXT"
+    }
+  },
+  "value_types": {
+    "BOOLEAN": "0.1",
+    "DATE_TIME": "0.1",
+    "DECIMAL": "0.1",
+    "INTEGER": "0.1",
+    "TEXT": "0.1"
+  }
+}

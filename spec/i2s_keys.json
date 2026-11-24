@@ -1,0 +1,160 @@
+{
+  "// MARK: - VALUE TYPES": "How a key's value is written as text in a slide's attributes. Append-only like the keys: a value type, once published, keeps its name and meaning.",
+  "value_types": {
+    "description": "The lexical form of a key's value. Every key names exactly one.",
+    "i2s_version": {
+      "0.1": {
+        "TEXT": {
+          "description": "UTF-8 text with no control characters. Corresponds to DICOM's character string value representations (LO, SH, UT)."
+        },
+        "DATE_TIME": {
+          "description": "A date and time in ISO 8601 extended format with a UTC offset, for example 2026-11-24T10:30:00-05:00."
+        },
+        "DECIMAL": {
+          "description": "A base-10 number with an optional sign, fraction and exponent, for example -0.25 or 2.5E-4."
+        },
+        "INTEGER": {
+          "description": "A base-10 integer with an optional sign, for example 40."
+        },
+        "BOOLEAN": {
+          "description": "The text true or the text false, in lower case."
+        }
+      }
+    }
+  },
+  "// MARK: - IDENTITY CLASSES": "Whether a key's value can identify a person. A file that marks its attributes METADATA_I2S promises that every pair identifies no individual, so an I2S key is either known to identify no one or under review; a key found to identify a person leaves I2S for the clinical metadata stream.",
+  "identity_classes": {
+    "description": "Whether a key's value can identify an individual.",
+    "i2s_version": {
+      "0.1": {
+        "NONE": {
+          "description": "The value identifies no individual: it describes the slide or the device that scanned it."
+        },
+        "UNDER_REVIEW": {
+          "description": "Whether the value can identify an individual is an open question, recorded in the key's identity note. Until it is answered, a de-identifier treats the value as identifying, unless the key's PHI flag states for the file that it is not."
+        }
+      }
+    }
+  },
+  "// MARK: - KEYS": "The vocabulary. Each key is a fact fixed when the slide was scanned. Every field is present on every key, null where it does not apply, so an omission is never mistaken for a default.",
+  "keys": {
+    "description": "The keys a slide's I2S attributes may carry. A key's name is the attribute's key in the file.",
+    "i2s_version": {
+      "0.1": {
+        "DigitalSlideIdentifier": {
+          "short_name": "DSI",
+          "dicom": null,
+          "value_type": "TEXT",
+          "multiplicity": "1",
+          "identity": "UNDER_REVIEW",
+          "identity_note": "The DSI is derived from the laboratory's accession number. Whether an accession-derived identifier identifies an individual in general is an open question for Ryan Landvater, with research under way; for each file, its companion DigitalSlideIdentifierIsPHI (DSI_is_PHI) carries the answer.",
+          "phi_flag": {
+            "key": "DigitalSlideIdentifierIsPHI",
+            "absent_means_phi": true
+          },
+          "deprecated": null,
+          "description": "The identifier the laboratory gave the slide when it was accessioned (Ryan Landvater, 2026-11-24: \"We'll call the accessioning number DigitalSlideIdentifier(DSI)\"). I2S diverges from DICOM here: DICOM's AccessionNumber (0008,0050) identifies an imaging service request, and its Container Identifier (0040,0512) identifies the slide container; the DSI is neither, so it has no DICOM keyword. Its companion DigitalSlideIdentifierIsPHI (short name DSI_is_PHI) tells a de-identifier whether this file's DSI must be scrambled (Ryan Landvater, 2026-11-24: \"We can add in the description that DSI has a separate DSI_is_PHI:bool so we know if it needs to be scrambled during deidentification\"). When the DSI is present and DSI_is_PHI is absent, a reader and a de-identifier shall treat the DSI as protected health information and scramble it (Ryan Landvater, 2026-11-24: \"Absent flag should default to true, scramble it\")."
+        },
+        "DigitalSlideIdentifierIsPHI": {
+          "short_name": "DSI_is_PHI",
+          "dicom": null,
+          "value_type": "BOOLEAN",
+          "multiplicity": "1",
+          "identity": "NONE",
+          "identity_note": null,
+          "phi_flag": null,
+          "deprecated": null,
+          "description": "Whether this file's DigitalSlideIdentifier is protected health information. true: the DSI is PHI, and a de-identifier shall scramble it. false: the DSI identifies no individual, and a de-identifier keeps it. Absent while the DSI is present: a reader and a de-identifier shall treat the DSI as PHI and scramble it, the safe default (Ryan Landvater, 2026-11-24: \"Absent flag should default to true, scramble it\"). The flag is a fact about the DSI and identifies no one itself. I2S diverges from DICOM here: DICOM has no such attribute."
+        },
+        "Manufacturer": {
+          "short_name": null,
+          "dicom": {
+            "keyword": "Manufacturer",
+            "tag": "0008,0070",
+            "vr": "LO",
+            "sequence": null,
+            "verified": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html (PS3.6 2026e) and https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.2.html (PS3.3 2026e), read 2026-11-24"
+          },
+          "value_type": "TEXT",
+          "multiplicity": "1",
+          "identity": "NONE",
+          "identity_note": null,
+          "phi_flag": null,
+          "deprecated": null,
+          "description": "Manufacturer of the scanner that produced the slide's images."
+        },
+        "ManufacturerModelName": {
+          "short_name": null,
+          "dicom": {
+            "keyword": "ManufacturerModelName",
+            "tag": "0008,1090",
+            "vr": "LO",
+            "sequence": null,
+            "verified": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html (PS3.6 2026e) and https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.2.html (PS3.3 2026e), read 2026-11-24"
+          },
+          "value_type": "TEXT",
+          "multiplicity": "1",
+          "identity": "NONE",
+          "identity_note": null,
+          "phi_flag": null,
+          "deprecated": null,
+          "description": "The manufacturer's model name of the scanner."
+        },
+        "DeviceSerialNumber": {
+          "short_name": null,
+          "dicom": {
+            "keyword": "DeviceSerialNumber",
+            "tag": "0018,1000",
+            "vr": "LO",
+            "sequence": null,
+            "verified": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html (PS3.6 2026e) and https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.2.html (PS3.3 2026e), read 2026-11-24"
+          },
+          "value_type": "TEXT",
+          "multiplicity": "1",
+          "identity": "UNDER_REVIEW",
+          "identity_note": "The serial number identifies one scanner. DICOM PS3.15 Annex E's Basic Application Level Confidentiality Profile removes it unless the Retain Device Identity Option is used (Table E.1-1, 2026e), and the HIPAA Safe Harbor list names \"Device identifiers and serial numbers\" (45 CFR 164.514(b)(2)(i)(M)); both treat a device instance as a possible link to the people it served, while neither says a scanner identifies a person. Whether it stays in I2S as identifying no individual is an open question for Ryan Landvater (research read 2026-11-24).",
+          "phi_flag": null,
+          "deprecated": null,
+          "description": "The manufacturer's serial number of the scanner."
+        },
+        "SoftwareVersions": {
+          "short_name": null,
+          "dicom": {
+            "keyword": "SoftwareVersions",
+            "tag": "0018,1020",
+            "vr": "LO",
+            "sequence": null,
+            "verified": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html (PS3.6 2026e) and https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.2.html (PS3.3 2026e), read 2026-11-24"
+          },
+          "value_type": "TEXT",
+          "multiplicity": "1-n",
+          "identity": "NONE",
+          "identity_note": null,
+          "phi_flag": null,
+          "deprecated": null,
+          "description": "The manufacturer's designations of the scanner's software versions; one value per software component."
+        },
+        "UniqueDeviceIdentifier": {
+          "short_name": null,
+          "dicom": {
+            "keyword": "UniqueDeviceIdentifier",
+            "tag": "0018,1009",
+            "vr": "UT",
+            "sequence": {
+              "keyword": "UDISequence",
+              "tag": "0018,100A"
+            },
+            "verified": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html (PS3.6 2026e), https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.html (General Equipment Module, PS3.3 2026e) and https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_10.29.html (UDI Macro, PS3.3 2026e), read 2026-11-24"
+          },
+          "value_type": "TEXT",
+          "multiplicity": "1-n",
+          "identity": "UNDER_REVIEW",
+          "identity_note": "Its device identifier part names a model, shared by every unit, but its production identifier part may carry the unit's serial number (21 CFR 830.3). DICOM PS3.15 Annex E's Basic Application Level Confidentiality Profile removes it unless the Retain Device Identity Option is used (Table E.1-1, 2026e), and the HIPAA Safe Harbor list names \"Device identifiers and serial numbers\" (45 CFR 164.514(b)(2)(i)(M)); both treat a device instance as a possible link to the people it served, while neither says a scanner identifies a person. Whether it stays in I2S as identifying no individual is an open question for Ryan Landvater (research read 2026-11-24).",
+          "phi_flag": null,
+          "deprecated": null,
+          "description": "The scanner's Unique Device Identifier, in the Human Readable Form its issuing agency defines. DICOM records it as the Unique Device Identifier of each item of the General Equipment Module's UDI Sequence, one item per issuing agency; I2S carries one value per item."
+        }
+      }
+    }
+  }
+}
