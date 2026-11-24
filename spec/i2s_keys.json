@@ -1,5 +1,4 @@
 {
-  "// MARK: - VALUE TYPES": "How a key's value is written as text in a slide's attributes. Append-only like the keys: a value type, once published, keeps its name and meaning.",
   "value_types": {
     "description": "The lexical form of a key's value. Every key names exactly one.",
     "i2s_version": {

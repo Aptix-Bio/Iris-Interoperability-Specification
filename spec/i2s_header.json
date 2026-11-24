@@ -1,9 +1,8 @@
 {
-  "// MARK: - SPECIFICATION IDENTITY": "Who this specification is and what version it is. Held apart from the keys because it describes the whole document; a version stated twice is a version that can disagree with itself.",
   "name": "Iris Interoperability Specification",
   "abbreviation": "I2S",
   "repository": "https://github.com/Aptix-Bio/Iris-Interoperability-Specification",
-  "// MARK: - VERSION": "Emitted as I2S::kVersionMajor / kVersionMinor. Every version group in spec/i2s_keys.json must be at or below this version; append-only means a bump never invalidates a file written under an earlier one.",
+  "// MARK: - VERSION": "Emitted as I2S::kVersionMajor / kVersionMinor. Every version group in spec/i2s_keys.json must be at or below this version. Append-only -- ensure a bump never invalidates a file written under an earlier one.",
   "version": {
     "major": 0,
     "minor": 1

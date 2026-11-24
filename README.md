@@ -13,21 +13,17 @@ specification document, as the Iris File Extension (IFE) does with its own
 `spec/*.json`. A key that is renamed in the JSON breaks every program that
 uses its old name at compile time, so the JSON stays the one source.
 
-## Why it exists
+## Providence
+**Iris splits acquisition metadata from optional patient information**
 
-A slide is given facts when it is scanned that never change afterwards: the
-laboratory's identifier for it, its stain, the date and time of the scan, and
-the identity of the scanner, down to its unique device identifier. These are
-characteristics of the slide, kept apart from the patient's clinical metadata
-(HL7 v2 or FHIR). I2S names them so that every scanner's output can be
-written with one vocabulary.
+DICOM blends immutable / indelible file attributes with clinical metadata
+(protected patient health information). Iris instead splits file / laboratory
+metadata such as the acquisition metadata, timing, and unique digital image
+identifier from the clinical metadata that may be patient identifiable. 
 
-An `.iris` file that marks its attributes `METADATA_I2S` promises that every
-pair is a fact fixed when the slide was scanned that identifies no individual;
-clinical and identifying facts travel in IFE's clinical metadata stream
-instead. I2S keys follow DICOM keywords where DICOM has the fact, and diverge
-where it does not: `DigitalImageIdentifier` (DII), the laboratory's accession
-identifier for the slide, has no DICOM keyword.
+Clinical information can be optionally encoded in a iris slide but not within
+the `METADATA_I2S` and instead should be encoded within the clinical metadata
+block within HL7 compatible streams.
 
 ## Status
 
