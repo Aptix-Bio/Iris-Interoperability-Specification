@@ -44,7 +44,7 @@ flowchart LR
 |---|---|---|
 | SpecScaffold_1 | `ctest` green on a header generated from `spec/*.json`; the generator refuses a removed key, a retyped key and a duplicate name | `doing` (PR #1 open, carrying every sprint) |
 | SpecLintAndDocument_2 | `cmake --workflow --preset gates` runs the linter, the generator check, the tests and the AsciiDoc render, locally and on CI, and CI publishes the HTML and PDF | `doing` (in PR #1, CI green) |
-| TypedAttributes_3 | a vendor's C++ writes `attributes[I2S::ScanTime] = std::chrono::system_clock::now();` with completion and compile-time type checking; every value encoded as its DICOM VR; `I2S::Attributes` iterates, and adapts to and from IFE's attribute pairs | `doing` (in PR #1) |
+| TypedAttributes_3 | a vendor's C++ writes `attributes[I2S::ScanTime] = std::chrono::system_clock::now();` with completion and compile-time type checking; every value encoded as its DICOM VR; `I2S::Attributes` iterates, and adapts to and from IFE's attribute pairs | `doing` (in PR #1, CI green) |
 | PythonAttributes_4 | `attributes[I2S.ScanTime] = datetime.now(timezone.utc)` type-checks under mypy --strict from generated stubs, a naive datetime is refused at run time, and `Attributes` iterates | `todo` |
 | VocabularyFromScanners_5 | the keys every scanner family writes at scan time (stain, scan date and time, optics, resolution) generated and tested, each DICOM mapping verified | `todo` |
 | IdentityClasses_6 | every key's identity class decided by the maintainer; no key left `UNDER_REVIEW` that a release depends on | `blocked` on the maintainer's answers (Open questions) |
@@ -244,7 +244,7 @@ compile as tests, a value of the wrong type fails to compile naming the key and
 the type, and every value type round-trips through its DICOM text. Committed
 to `feature/SpecScaffold_1`, through pull request #1 (Decision_08).
 
-- [x] **DicomEncoding_3.1** — every value is text encoded as its DICOM VR.
+- [x] **DicomEncoding_3.1** — commit 022a20e. every value is text encoded as its DICOM VR.
   A new `value_representations` section defines CS, DS, DT, IS, LO, LT, SH, ST
   and UT, each with its limit and unit, whether values may be joined by the
   backslash, an example and its source (PS3.5 2026e section 6.2, read
@@ -261,7 +261,7 @@ to `feature/SpecScaffold_1`, through pull request #1 (Decision_08).
     (`CHANGED keys.UniqueDeviceIdentifier.multiplicity: "1-n" -> "1"`),
     recorded by a reviewed hand edit of the witness, since DICOM's UT holds a
     single value
-- [x] **TypedKeys_3.2** — one `inline constexpr TypedKey<Key::…>` per key and
+- [x] **TypedKeys_3.2** — commit 8704511. one `inline constexpr TypedKey<Key::…>` per key and
   per short name, generated with a Doxygen comment (description, value type,
   VR, multiplicity, DICOM attribute, identity class); a value of the wrong type
   has no viable `operator=`, one per value type, so the note names the concept
@@ -273,26 +273,26 @@ to `feature/SpecScaffold_1`, through pull request #1 (Decision_08).
     overloaded '='` … `'const char (&)[10]' does not satisfy 'DateTimeValue'`
     for `Slot<I2S::Key::AcquisitionDateTime>`), int to TEXT (`TextValue`), int
     to BOOLEAN (`BooleanValue`), an unknown key (`NoSuchKey`)
-- [x] **AttributesAdapter_3.3** — `include/I2S_Attributes.hpp`, header-only:
+- [x] **AttributesAdapter_3.3** — commit 8704511. `include/I2S_Attributes.hpp`, header-only:
   typed `set`/`operator[]`/`get`, `to_pairs()` and `from_pairs()` as the only
   conversion, a `Result` naming the key, the text and the rule; a refused write
   is kept in `errors()` and makes `to_pairs()` refuse; no recursion [Adapter_01]
   - [x] Green: `i2s_attributes_tests`, 17 cases, including each VR at its
     limit and one refusal per rule
-- [x] **Iteration_3.4** — `begin()`/`end()`, `std::ranges::forward_range`
+- [x] **Iteration_3.4** — commit 8704511. `begin()`/`end()`, `std::ranges::forward_range`
   (a `static_assert` in the header and in the test), elements with the key,
   name, short name, VR, identity class, text, and a `std::variant` value and
   `visit`, in the spec's key order; attributes read from pairs iterate the same
   [Iteration_01]
-- [x] **AbsentFlag_3.5** — `I2S::is_phi(attributes, I2S::DII)` is true when
+- [x] **AbsentFlag_3.5** — commit 8704511. `I2S::is_phi(attributes, I2S::DII)` is true when
   `DII_is_PHI` is absent, written or read [PhiFlag_02]
-- [x] **ScanTime_3.6** — `AcquisitionDateTime` (0008,002A) DT, short name
+- [x] **ScanTime_3.6** — commit 022a20e. `AcquisitionDateTime` (0008,002A) DT, short name
   `ScanTime` (PS3.6 2026e; PS3.3 2026e C.7.10.1, read 2026-11-24), identity
   `UNDER_REVIEW`: HIPAA Safe Harbor names date elements other than the year
   (45 CFR 164.514(b)(2)(i)(C)), and PS3.15 2026e Table E.1-1 gives Acquisition
   DateTime the action X/Z/D unless a date option keeps or shifts it (read
   2026-11-24) (Open question 6)
-- [x] **ReadmeExamples_3.7** — the README's "Writing attributes" section with
+- [x] **ReadmeExamples_3.7** — commit 8704511. the README's "Writing attributes" section with
   the two examples, extracted at configure by `cmake/readme_examples.cmake`
   and compiled and run as `i2s_readme_examples`; the document's VR table (one
   example per VR) and Relation to IFE section [Readme_01, Document_02]
@@ -302,7 +302,10 @@ to `feature/SpecScaffold_1`, through pull request #1 (Decision_08).
 - [x] **PythonModule_3.8** — moved to its own sprint, PythonAttributes_4: the
   C++ adapter filled this sprint
 - [ ] **VERIFY:** the maintainer writes and lists attributes with the API
-- [ ] **Gate:** CI green on the pull request
+- [x] **Gate:** CI green on pull request #1: run 45445488765 on
+  `blacksmith-2vcpu-ubuntu-2404`, GCC 13.3.0, gates 16 of 16 (the four
+  compile-fail cases pass under GCC too), artifact `i2s-specification`
+  uploaded
 
 ## PythonAttributes_4 — the same vocabulary, typed in Python `todo` · needs TypedAttributes_3
 
