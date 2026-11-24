@@ -1,0 +1,59 @@
+# RTM Ci_01
+# The specification gate: the generator's own checks (strict typing, its
+# tests, the append-only gate), then the C++ header compiled and tested.
+# Runs per development/ci_runners.md: on pull requests that are not drafts
+# and by hand, never on a push; a new commit cancels its pull request's run;
+# documentation-only changes run nothing.
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ["**/*.md"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  spec:
+    name: generator, header and tests
+    if: github.event_name == 'workflow_dispatch' || !github.event.pull_request.draft
+    # Blacksmith's Ubuntu 24.04 x64 runner, 2 vCPU / 8 GB (labels read
+    # 2026-11-24 from https://docs.blacksmith.sh/blacksmith-runners/overview).
+    # Ryan, 2026-11-24: "We should be using blacksmith for our CI runners".
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # uv installs the pinned Python and the locked mypy and pytest; its cache
+      # is keyed by uv.lock.
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.12.12"
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      # Catch2 is fetched into dependencies/ at configure, pinned by archive
+      # hash in tests/CMakeLists.txt, so that file's hash is the cache key.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: dependencies
+          key: dependencies-${{ runner.os }}-${{ hashFiles('tests/CMakeLists.txt') }}
+          restore-keys: dependencies-${{ runner.os }}-
+      - run: uv sync --locked
+      - run: uv run mypy
+      - run: uv run pytest
+      - run: uv run python -m generator --validate
+      - name: Configure (runs the generator)
+        run: cmake --preset release -DPython3_EXECUTABLE="$PWD/.venv/bin/python"
+      - run: uv run python -m generator --check
+      - run: cmake --build --preset release -j 2
+      - run: ctest --preset release
+      # An exit status of 0 with nothing generated is a failure.
+      - name: Outputs exist
+        run: test -s generated_source/I2S_Keys.hpp && test -s generated_docs/i2s_specification.md
