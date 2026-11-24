@@ -28,7 +28,10 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${I2S_GENERATOR_I
 
 add_library(i2s INTERFACE)
 add_library(I2S::i2s ALIAS i2s)
-target_include_directories(i2s INTERFACE "$<BUILD_INTERFACE:${I2S_GENERATED_DIR}>")
+# The generated vocabulary (I2S_Keys.hpp) and the hand-written adapter over it
+# (I2S_Attributes.hpp), both header-only.
+target_include_directories(i2s INTERFACE "$<BUILD_INTERFACE:${I2S_GENERATED_DIR}>"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_compile_features(i2s INTERFACE cxx_std_20)
 
 # RTM Document_02

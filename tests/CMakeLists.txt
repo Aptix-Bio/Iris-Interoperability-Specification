@@ -1,4 +1,8 @@
 include(FetchContent)
+# Catch2 is built at the tests' standard, so its string_view support (which it
+# compiles only under C++17 and later) links with tests that print one.
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Fetched into the gitignored dependencies/ beside the sources, so every build
 # tree shares one copy, pinned by version and archive hash: a re-tagged release
 # fails the hash instead of changing the tests' framework underneath them.
@@ -19,6 +23,45 @@ target_link_libraries(i2s_keys_tests PRIVATE I2S::i2s Catch2::Catch2WithMain)
 target_compile_options(i2s_keys_tests PRIVATE
     $<IF:$<CXX_COMPILER_ID:MSVC>,/W4 /WX,-Wall -Wextra -Wpedantic -Werror>)
 add_test(NAME i2s_keys_tests COMMAND i2s_keys_tests)
+
+# RTM TypedKeys_01, Encoding_01, Adapter_01, Iteration_01, PhiFlag_02
+add_executable(i2s_attributes_tests cpp/attributes_tests.cpp)
+target_link_libraries(i2s_attributes_tests PRIVATE I2S::i2s Catch2::Catch2WithMain)
+target_compile_options(i2s_attributes_tests PRIVATE
+    $<IF:$<CXX_COMPILER_ID:MSVC>,/W4 /WX,-Wall -Wextra -Wpedantic -Werror>)
+add_test(NAME i2s_attributes_tests COMMAND i2s_attributes_tests)
+
+# RTM TypedKeys_01
+# A value of the wrong type must not compile, and the compiler must say why:
+# each case names the concept the value failed, or the unknown key.
+set(compile_fail_text_to_date_time "DateTimeValue")
+set(compile_fail_int_to_text "TextValue")
+set(compile_fail_int_to_boolean "BooleanValue")
+set(compile_fail_unknown_key "NoSuchKey")
+foreach(case text_to_date_time int_to_text int_to_boolean unknown_key)
+    add_executable(i2s_compile_fail_${case} EXCLUDE_FROM_ALL cpp/compile_fail/${case}.cpp)
+    target_link_libraries(i2s_compile_fail_${case} PRIVATE I2S::i2s)
+    add_test(NAME i2s_compile_fail_${case}
+        COMMAND "${CMAKE_COMMAND}" -DBINARY_DIR=${CMAKE_BINARY_DIR} -DTARGET=i2s_compile_fail_${case}
+                "-DEXPECT=${compile_fail_${case}}" -P "${PROJECT_SOURCE_DIR}/cmake/expect_compile_error.cmake")
+endforeach()
+
+# RTM Readme_01
+# The README's C++ examples, compiled and run.
+set(readme_source "${CMAKE_CURRENT_BINARY_DIR}/readme_examples.cpp")
+execute_process(
+    COMMAND "${CMAKE_COMMAND}" -DREADME=${PROJECT_SOURCE_DIR}/README.md -DOUT=${readme_source}
+            -P "${PROJECT_SOURCE_DIR}/cmake/readme_examples.cmake"
+    RESULT_VARIABLE readme_result)
+if(NOT readme_result EQUAL 0)
+    message(FATAL_ERROR "README examples could not be extracted (exit ${readme_result})")
+endif()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/README.md")
+add_executable(i2s_readme_examples "${readme_source}")
+target_link_libraries(i2s_readme_examples PRIVATE I2S::i2s)
+target_compile_options(i2s_readme_examples PRIVATE
+    $<IF:$<CXX_COMPILER_ID:MSVC>,/W4 /WX,-Wall -Wextra -Wpedantic -Werror>)
+add_test(NAME i2s_readme_examples COMMAND i2s_readme_examples)
 
 # RTM Generated_04
 # A key renamed in the JSON must break every use of its old name at compile
@@ -62,10 +105,12 @@ endforeach()
 add_test(NAME i2s_document COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --target i2s_document)
 
 set_tests_properties(i2s_generator_check PROPERTIES DEPENDS i2s_lint)
-set_tests_properties(i2s_pytest i2s_mypy i2s_keys_tests i2s_renamed_key_fails_to_compile
-    PROPERTIES DEPENDS i2s_generator_check)
+set(i2s_tests i2s_pytest i2s_mypy i2s_keys_tests i2s_renamed_key_fails_to_compile i2s_attributes_tests
+    i2s_compile_fail_text_to_date_time i2s_compile_fail_int_to_text i2s_compile_fail_int_to_boolean
+    i2s_compile_fail_unknown_key i2s_readme_examples)
+set_tests_properties(${i2s_tests} PROPERTIES DEPENDS i2s_generator_check)
 set_tests_properties(i2s_document_refuses_printed_include i2s_document_refuses_missing_include
     i2s_document_refuses_unincluded_table
-    PROPERTIES DEPENDS "i2s_pytest;i2s_mypy;i2s_keys_tests;i2s_renamed_key_fails_to_compile")
+    PROPERTIES DEPENDS "${i2s_tests}")
 set_tests_properties(i2s_document PROPERTIES DEPENDS
     "i2s_document_refuses_printed_include;i2s_document_refuses_missing_include;i2s_document_refuses_unincluded_table")

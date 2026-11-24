@@ -8,7 +8,7 @@ so an unknown name is an explicit absence the caller must handle.
 # RTM Generated_01, Generated_02, Generated_03, Generated_04, PhiFlag_01, PhiFlag_02
 from __future__ import annotations
 
-from ..model import DicomTag, Key, Member, Spec
+from ..model import DicomTag, Key, Member, Spec, ValueRepresentation
 
 
 def _banner(digest: str) -> str:
@@ -70,13 +70,37 @@ def _row(key: Key) -> str:
     return (
         f"    KeyInfo{{Key::{key.name}, {_string(key.name)}, {_optional_string(key.short_name)},\n"
         f"            {_dicom(key)},\n"
-        f"            ValueType::{key.value_type}, Multiplicity{{{key.multiplicity.minimum}, {maximum}}}, "
+        f"            ValueType::{key.value_type}, Vr::{key.vr}, Multiplicity{{{key.multiplicity.minimum}, {maximum}}}, "
         f"IdentityClass::{key.identity},\n"
         f"            {_phi_flag(key)}, {'true' if key.deprecated else 'false'}}},"
     )
 
 
+def _vr_row(vr: ValueRepresentation) -> str:
+    return (f"    VrInfo{{Vr::{vr.name}, {_string(vr.name)}, {vr.max_length}u, "
+            f"{'true' if vr.length_unit == 'characters' else 'false'}, "
+            f"{'true' if vr.multiple_values else 'false'}, {_string(vr.example)}}},")
+
+
+def _typed_key(key: Key) -> str:
+    """The constant a developer types, with the documentation an IDE shows on hover."""
+    dicom = "none: I2S diverges from DICOM" if key.dicom is None else f"{key.dicom.keyword} {key.dicom.tag}"
+    lines = [
+        f"/// {key.name}" + (f" (short name {key.short_name})" if key.short_name else "") + f": {_comment(key.description)}",
+        f"/// Value type {key.value_type}, written as the DICOM VR {key.vr}, multiplicity {key.multiplicity.text}.",
+        f"/// DICOM: {dicom}. Identity class: {key.identity}." + (" Deprecated." if key.deprecated else ""),
+        f"inline constexpr TypedKey<Key::{key.name}> {key.name}{{}};",
+    ]
+    if key.short_name is not None:
+        lines += [f"/// {key.short_name}: the short name of {key.name}, the same key.",
+                  f"inline constexpr TypedKey<Key::{key.name}> {key.short_name}{{}};"]
+    return "\n".join(lines)
+
+
 def emit_header(spec: Spec, digest: str) -> str:
+    vr_names = "\n".join(f"    {vr.name}, ///< {_comment(vr.description)}" for vr in spec.value_representations)
+    vr_rows = "\n".join(_vr_row(vr) for vr in spec.value_representations)
+    typed_keys = "\n\n".join(_typed_key(k) for k in spec.keys)
     keys = "\n".join(
         f"    {k.name}, ///< since {k.since}: {_comment(k.description)}" for k in spec.keys
     )
@@ -98,7 +122,33 @@ inline constexpr std::uint16_t kVersionMajor = {spec.version.major};
 inline constexpr std::uint16_t kVersionMinor = {spec.version.minor};
 inline constexpr bool kIsDraft = {'true' if spec.status == 'draft' else 'false'};
 
-{_enum("ValueType", "std::uint8_t", spec.value_types, "How a key's value is written as text.")}
+/// The DICOM value representations I2S writes a value as (PS3.5 section 6.2).
+enum class Vr : std::uint8_t {{
+{vr_names}
+}};
+
+/// One VR as I2S writes it. max_length counts characters when
+/// counts_characters is true, and UTF-8 bytes otherwise.
+struct VrInfo {{
+    Vr vr;
+    std::string_view name;
+    std::uint32_t max_length;
+    bool counts_characters;
+    bool multiple_values;
+    std::string_view example;
+}};
+
+/// Indexed by Vr.
+inline constexpr std::array<VrInfo, {len(spec.value_representations)}> kVrs{{{{
+{vr_rows}
+}}}};
+
+[[nodiscard]] constexpr const VrInfo& info(Vr vr) noexcept
+{{
+    return kVrs[static_cast<std::size_t>(vr)];
+}}
+
+{_enum("ValueType", "std::uint8_t", spec.value_types, "What a key's value is.")}
 {_enum("IdentityClass", "std::uint8_t", spec.identity_classes, "Whether a key's value can identify an individual.")}
 /// Every key of the vocabulary, in the order the specification defines them.
 enum class Key : std::uint16_t {{
@@ -147,6 +197,7 @@ struct KeyInfo {{
     /// std::nullopt where I2S diverges from DICOM and DICOM has no such attribute.
     std::optional<DicomAttribute> dicom;
     ValueType value_type;
+    Vr vr;
     Multiplicity multiplicity;
     IdentityClass identity;
     /// std::nullopt where no flag qualifies the key's identity class per file.
@@ -191,6 +242,15 @@ static_assert(
     }}
     return std::nullopt;
 }}
+
+/// A key as a type, so a value written under it is checked at compile time
+/// (I2S_Attributes.hpp). One constant per key and per short name follows.
+template <Key K>
+struct TypedKey {{
+    static constexpr Key key = K;
+}};
+
+{typed_keys}
 
 }} // namespace I2S
 

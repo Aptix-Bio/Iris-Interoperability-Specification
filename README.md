@@ -25,6 +25,30 @@ Clinical information can be optionally encoded in a iris slide but not within
 the `METADATA_I2S` and instead should be encoded within the clinical metadata
 block within HL7 compatible streams.
 
+## Writing attributes
+
+A scanner writes I2S attributes through `I2S_Attributes.hpp`. Each key is a
+constant in namespace `I2S` whose type carries the key's value type, so an IDE
+completes the key names and the compiler refuses a value of the wrong type:
+
+```cpp
+I2S::Attributes attributes;
+attributes[I2S::Manufacturer]          = "Leica";
+attributes[I2S::ManufacturerModelName] = "GT450";
+attributes[I2S::ScanTime]              = std::chrono::system_clock::now();
+```
+
+Each value is held as the text of its DICOM value representation, and
+`attributes.to_pairs()` gives the (key name, value text) pairs an IFE
+attribute block stores under `METADATA_I2S`; `I2S::Attributes::from_pairs`
+reads them back. A viewer lists a file's I2S attributes in one loop, in the
+specification's key order:
+
+```cpp
+for (const auto& element : attributes)
+    std::cout << element.name() << " = " << element.text() << '\n';
+```
+
 ## Status
 
 **Draft 0.1, private.** The vocabulary is seeded with the Digital Image

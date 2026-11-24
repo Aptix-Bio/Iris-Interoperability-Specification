@@ -36,6 +36,7 @@ flowchart LR
 | Goal_06 | A linter checks the current version of I2S: formatting, times, versions, and that nothing is dropped |
 | Goal_07 | An AsciiDoc document is generated from the specification, as IFE's is, for a person to review |
 | Goal_08 | No public file quotes a person |
+| Goal_09 | A scanner vendor's developer writes I2S attributes in C++ with IDE completion and compile-time type checking, each value encoded as its DICOM VR, and a viewer lists a file's I2S attributes in one loop; I2S defines the vocabulary and IFE's attribute block the container |
 
 ## Requirements
 
@@ -49,7 +50,7 @@ flowchart LR
 | Generated_03 | The accession identifier is `DigitalImageIdentifier`, short name `DII`, with no DICOM attribute; scanner keys carry their verified DICOM tags | Goal_01, Goal_02 | SpecScaffold_1 | `spec/i2s_keys.json` | Static: `[Generated_03]` | Verified |
 | Generated_04 | A key's old name fails to compile after a rename (the test names `DigitalSlideIdentifier`, renamed 2026-11-24) | Goal_03 | SpecScaffold_1 | `generator/emit/cpp.py` | Static: `i2s_renamed_key_fails_to_compile` | Verified |
 | PhiFlag_01 | A key may name a BOOLEAN flag key stating per file whether its value is PHI; a flag naming no key or a key that is not BOOLEAN is refused; the DII's flag is `DII_is_PHI` | Goal_04 | SpecScaffold_1 | `generator/model.py`, `generator/emit/cpp.py` | Unit: `test_phi_flag_must_name_a_boolean_key`, `test_phi_flag_must_name_a_defined_key`; Static: `[PhiFlag_01]` | Verified |
-| PhiFlag_02 | When the DII is present and `DII_is_PHI` is absent, a reader and a de-identifier treat the DII as PHI; the default is witnessed and generated as `PhiFlag::absent_means_phi` | Goal_04 | SpecScaffold_1 | `spec/i2s_keys.json`, `generator/emit/cpp.py` | Unit: `test_changed_absent_default_is_rejected`; Static: `[PhiFlag_02]` | Verified |
+| PhiFlag_02 | When the DII is present and `DII_is_PHI` is absent, a reader and a de-identifier treat the DII as PHI; the default is witnessed, generated as `PhiFlag::absent_means_phi`, and applied by `I2S::is_phi` | Goal_04 | SpecScaffold_1, TypedAttributes_3 | `spec/i2s_keys.json`, `generator/emit/cpp.py`, `include/I2S_Attributes.hpp` | Unit: `test_changed_absent_default_is_rejected`; Static: `[PhiFlag_02]`; Contract: `i2s_attributes_tests` `[PhiFlag_02]` | Verified |
 | Document_01 | A readable specification document is generated from the same JSON, byte-stable | Goal_03 | SpecScaffold_1 | `generator/emit/docs.py` | Unit: `test_generation_is_deterministic` | Retired 2026-11-24: the Markdown document is replaced by Document_02 |
 | Process_01 | Work runs in sprints that each end in a milestone and one pull request, every task red first; no public file quotes a person | Goal_03, Goal_08 | SpecScaffold_1 | `development/` | review | Implemented |
 | Ci_01 | CI runs the generator's checks and `ctest` on non-draft pull requests on Blacksmith, pinned and bounded | Goal_05 | SpecScaffold_1 | `.github/workflows/ci.yml` | the workflow's own run (45429051380) | Verified |
@@ -63,7 +64,12 @@ flowchart LR
 | Document_02 | An AsciiDoc document, a hand-written narrative including generated tables and key sections with DO-NOT-EDIT banners, renders to HTML and PDF with no warning, no missing or printed include and no table left out | Goal_07 | SpecLintAndDocument_2 | `spec/i2s_spec.adoc`, `generator/emit/docs.py`, `cmake/render_document.cmake` | Unit: `test_document.py`; Static: `i2s_document_refuses_*`, `i2s_document` | Verified |
 | Gates_01 | One entry point runs the linter, the generator check, the tests and the document render, in that order, locally and in CI | Goal_06, Goal_07 | SpecLintAndDocument_2 | `CMakePresets.json`, `tests/CMakeLists.txt` | Static: `cmake --workflow --preset gates` | Verified |
 | Ci_02 | CI runs the gates on Blacksmith and uploads the rendered HTML and PDF | Goal_05, Goal_07 | SpecLintAndDocument_2 | `.github/workflows/ci.yml` | the workflow's own run (45439828880) | Verified |
-| TypedKeys_01 | Typed key constants and `I2S::Attributes`, with compile-time type errors, DICOM text encoding and iteration | Goal_01 | TypedAttributes_3 | — | — | Planned |
-| Vocabulary_01 | The scan-time vocabulary (stain, scan date and time, optics, resolution) | Goal_01 | VocabularyFromScanners_4 | — | — | Planned |
-| Identity_01 | No key a release depends on is `UNDER_REVIEW` | Goal_01, Goal_04 | IdentityClasses_5 | — | — | Blocked (Open questions 1–3) |
-| Adoption_01 | IFE's `METADATA_I2S` names I2S; Iris-Slide refuses attribute keys I2S does not define | Goal_01 | IfeAndIrisSlideAdoption_6 | — | — | Planned |
+| Encoding_01 | Every value is text encoded as its DICOM VR, within the VR's limits, repertoire and multiplicity; every key states a VR legal for its value type and equal to its DICOM attribute's | Goal_09 | TypedAttributes_3 | `spec/i2s_keys.json`, `generator/model.py`, `include/I2S_Attributes.hpp` | Unit: `test_encoding.py`; Contract: `i2s_attributes_tests` `[Encoding_01]` | Implemented |
+| TypedKeys_01 | Every key and short name is a typed C++ constant with IDE documentation; a value of the wrong type fails to compile, naming the concept it failed | Goal_09 | TypedAttributes_3 | `generator/emit/cpp.py`, `include/I2S_Attributes.hpp` | Static: `i2s_compile_fail_*`, `[TypedKeys_01]` | Implemented |
+| Adapter_01 | `I2S::Attributes` converts only to and from IFE's (key name, value text) pairs; a refused write or pair names the key, the text and the rule | Goal_09 | TypedAttributes_3 | `include/I2S_Attributes.hpp` | Contract: `[Adapter_01]` | Implemented |
+| Iteration_01 | `I2S::Attributes` is a forward range of elements in the spec's key order, the same written or read | Goal_09 | TypedAttributes_3 | `include/I2S_Attributes.hpp` | Static and Contract: `[Iteration_01]` | Implemented |
+| Readme_01 | The README's C++ examples compile and run as a test | Goal_09 | TypedAttributes_3 | `cmake/readme_examples.cmake` | Static: `i2s_readme_examples` | Implemented |
+| PythonAttributes_01 | A typed Python module and stubs for the same vocabulary and text | Goal_09 | PythonAttributes_4 | — | — | Planned |
+| Vocabulary_01 | The scan-time vocabulary (stain, scan date and time, optics, resolution) | Goal_01 | VocabularyFromScanners_5 | — | — | Planned |
+| Identity_01 | No key a release depends on is `UNDER_REVIEW` | Goal_01, Goal_04 | IdentityClasses_6 | — | — | Blocked (Open questions 1–3) |
+| Adoption_01 | IFE's `METADATA_I2S` names I2S; Iris-Slide refuses attribute keys I2S does not define | Goal_01 | IfeAndIrisSlideAdoption_7 | — | — | Planned |
