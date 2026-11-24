@@ -127,7 +127,7 @@ the document render in that order, locally and on Blacksmith, and CI uploads
 the HTML and PDF. Branch `feature/SpecLintAndDocument_2`, pull request based on
 `feature/SpecScaffold_1`.
 
-- [x] **DiiRename_2.1** — Decision_06: `DigitalImageIdentifier` (`DII`) and
+- [x] **DiiRename_2.1** — commit c03ec35. Decision_06: `DigitalImageIdentifier` (`DII`) and
   `DigitalImageIdentifierIsPHI` (`DII_is_PHI`) in place in 0.1; the
   compile-fail test names the old `Key::DigitalSlideIdentifier`
   [Generated_03, Generated_04, PhiFlag_01]
@@ -138,30 +138,30 @@ the HTML and PDF. Branch `feature/SpecLintAndDocument_2`, pull request based on
     and the new ones recorded: `uv run pytest` 13 passed, `ctest --preset
     debug` 7 of 7, the compile-fail test matching `error: no member named
     'DigitalSlideIdentifier' in 'I2S::Key'`
-- [x] **NoQuotes_2.2** — Decision_07 across README, CONTRIBUTING, the spec,
+- [x] **NoQuotes_2.2** — commit c03ec35. Decision_07 across README, CONTRIBUTING, the spec,
   `development/` and the workflow; pull request #1's body rewritten [Process_01]
   - [x] `grep -rni ryan` over the public files finds only the author line in
     `spec/i2s_header.json`
-- [x] **CanonicalFormat_2.3** — `--validate` fails on a spec file that is not
+- [x] **CanonicalFormat_2.3** — commit 377370b. `--validate` fails on a spec file that is not
   in canonical form, naming the file and the first differing line; `--fix`
   rewrites it (schema field order, two-space indent, trailing newline) [Lint_01]
   - [x] Red: `--validate` returned 0 on a re-indented file, one without its
     trailing newline, and one with fields out of schema order (`assert 0 == 1`)
   - [x] Green: `test_lint.py` format tests pass; `--fix` restores the
     committed text byte for byte
-- [x] **NameRules_2.4** — PascalCase key names, unique short names, ASCII
+- [x] **NameRules_2.4** — commit 377370b. PascalCase key names, unique short names, ASCII
   names; every failure now names its file [Lint_02]
   - [x] Red: the rules existed since 09cc501, but their messages named no
     file: `keys.manufacturer_name: 'manufacturer_name' is not a PascalCase
     name` without `spec/i2s_keys.json:`
   - [x] Green: three name tests pass
-- [x] **DicomRules_2.5** — tags `GGGG,EEEE`, VRs from DICOM's 34 (PS3.5
+- [x] **DicomRules_2.5** — commit 377370b. tags `GGGG,EEEE`, VRs from DICOM's 34 (PS3.5
   2026e Table 6.2-1, read 2026-11-24), `verified` now a list of sources, each
   a title, an https URL and an ISO 8601 read date [Lint_03]
   - [x] Red: an unknown VR `XX` passed (`DID NOT RAISE SpecError`);
     `verified` was free text, so no date or URL could be checked
   - [x] Green: four DICOM tests pass
-- [x] **TimeRules_2.6** — revision dates and `verified` dates are ISO 8601
+- [x] **TimeRules_2.6** — commit 377370b. revision dates and `verified` dates are ISO 8601
   calendar dates; each value type carries an `example` checked by its lexical
   rule; a DATE_TIME requires a UTC offset between -12:00 and +14:00, to the
   second with up to six fractional digits, from 0001-01-01 to 9999-12-31, as
@@ -171,7 +171,7 @@ the HTML and PDF. Branch `feature/SpecLintAndDocument_2`, pull request based on
   - [x] Green: `test_date_time_without_offset_is_refused` fails as intended
     with `'2026-11-24T10:30:00' is not a DATE_TIME: it has no UTC offset`;
     four time tests pass
-- [x] **VersionRules_2.7** — the header version and status are the newest
+- [x] **VersionRules_2.7** — commit 377370b. the header version and status are the newest
   revision's; revisions follow without gap or repeat and only the newest may
   be a draft; every version group is a revision; nothing is added under an
   older version or a ratified one [Lint_05]
@@ -179,7 +179,7 @@ the HTML and PDF. Branch `feature/SpecLintAndDocument_2`, pull request based on
     repeated 0.1, two drafts, a 0.0 group and a key added to 0.1 under 0.2 all
     passed
   - [x] Green: eight version tests pass
-- [x] **NothingDropped_2.8** — the gate's missing cases: a key moved between
+- [x] **NothingDropped_2.8** — commit 377370b. the gate's missing cases: a key moved between
   version groups, a short name removed, a key un-deprecated, a PHI flag
   removed or its absent default changed [AppendOnly_02]
   - [x] Red: un-deprecating passed, since `deprecated` was not witnessed; a
@@ -187,11 +187,11 @@ the HTML and PDF. Branch `feature/SpecLintAndDocument_2`, pull request based on
   - [x] Green: `deprecated` witnessed, settable and never cleared; five
     dropped-fact tests pass (short name and PHI flag removal were already
     caught as `CHANGED`, now tested)
-- [x] **Consistency_2.9** — `identity_note` exactly when `UNDER_REVIEW`; PHI
+- [x] **Consistency_2.9** — commit 377370b. `identity_note` exactly when `UNDER_REVIEW`; PHI
   flags name BOOLEAN keys; multiplicity in an allowed form [Lint_06]
   - [x] Red: the rules existed since 09cc501; their messages named no file
   - [x] Green: eight consistency tests pass (six multiplicity forms)
-- [x] **AsciiDocDocument_2.10** — `spec/i2s_spec.adoc` narrative (purpose,
+- [x] **AsciiDocDocument_2.10** — commit 377370b. `spec/i2s_spec.adoc` narrative (purpose,
   identity rules, the DII and its flag, the absent-means-PHI rule, value types,
   how keys are added) and six generated includes with IFE's `////` banner and
   the witness hash, in place of the Markdown document; generation deletes
@@ -207,13 +207,13 @@ the HTML and PDF. Branch `feature/SpecLintAndDocument_2`, pull request based on
     render with its own guard (`render_document[unprocessed-include]`,
     `[asciidoctor-failed]`, `[unincluded-file]`); control: a wrong expected
     guard fails the test (`Required regular expression not found`)
-- [x] **Gates_2.11** — one entry point, `cmake --workflow --preset gates`:
+- [x] **Gates_2.11** — commit 377370b. one entry point, `cmake --workflow --preset gates`:
   configure (the generator), build, then ctest in a fixed `DEPENDS` order:
   `i2s_lint`, `i2s_generator_check`, the tests, the three document guards,
   `i2s_document` [Gates_01]
   - [x] Green locally (macOS, AppleClang, Ruby 4.0.10): 10 of 10, the render
     writing `build/release/doc/i2s_spec.html` and `.pdf`
-- [x] **CiDocument_2.12** — CI runs `cmake --workflow --preset gates` as a
+- [x] **CiDocument_2.12** — commit 377370b. CI runs `cmake --workflow --preset gates` as a
   single step after the toolchain steps (uv, Ruby with `bundler-cache` from
   `Gemfile.lock`), and uploads `build/release/doc/` as the artifact
   `i2s-specification` [Ci_02]
