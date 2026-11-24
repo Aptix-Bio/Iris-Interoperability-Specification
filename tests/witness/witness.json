@@ -18,24 +18,24 @@
       "since": "0.1",
       "value_type": "TEXT"
     },
-    "DigitalSlideIdentifier": {
+    "DigitalImageIdentifier": {
       "dicom": null,
       "identity": "UNDER_REVIEW",
       "multiplicity": "1",
       "phi_flag": {
         "absent_means_phi": true,
-        "key": "DigitalSlideIdentifierIsPHI"
+        "key": "DigitalImageIdentifierIsPHI"
       },
-      "short_name": "DSI",
+      "short_name": "DII",
       "since": "0.1",
       "value_type": "TEXT"
     },
-    "DigitalSlideIdentifierIsPHI": {
+    "DigitalImageIdentifierIsPHI": {
       "dicom": null,
       "identity": "NONE",
       "multiplicity": "1",
       "phi_flag": null,
-      "short_name": "DSI_is_PHI",
+      "short_name": "DII_is_PHI",
       "since": "0.1",
       "value_type": "BOOLEAN"
     },

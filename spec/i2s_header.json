@@ -17,7 +17,7 @@
       "authors": [
         "Ryan Landvater MD"
       ],
-      "summary": "Initial draft. Defines the key schema (name, short name, DICOM counterpart, value type, multiplicity, identity class, PHI flag), the value types and identity classes, and seeds the Digital Slide Identifier with its PHI flag DSI_is_PHI (absent means PHI) and the scanner's identity (manufacturer, model, serial number, software versions, unique device identifier); the serial number and unique device identifier are under review as possible device-level identifiers."
+      "summary": "Initial draft. Defines the key schema (name, short name, DICOM counterpart, value type, multiplicity, identity class, PHI flag), the value types and identity classes, and seeds the Digital Image Identifier (DII) with its PHI flag DII_is_PHI (absent means PHI) and the scanner's identity (manufacturer, model, serial number, software versions, unique device identifier); the serial number and unique device identifier are under review as possible device-level identifiers."
     }
   ]
 }

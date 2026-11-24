@@ -2,7 +2,7 @@
 /build/
 
 # Fetched dependencies (Catch2), pinned by hash in CMakeLists.txt.
-/dependencies/
+/dependencies
 
 # uv's project-local environment.
 /.venv/

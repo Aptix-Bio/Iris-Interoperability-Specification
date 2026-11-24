@@ -1,7 +1,7 @@
 # Iris Interoperability Specification (I2S)
 
 I2S is the vocabulary of slide-level facts that a whole-slide image carries
-from the moment it is scanned: what the slide is (its Digital Slide
+from the moment it is scanned: what the slide is (its Digital Image
 Identifier) and which device scanned it, and later its stain and the time it
 was scanned. Each fact is a named key with a stated value type, its DICOM
 counterpart where one exists, and an identity class saying whether it can
@@ -15,27 +15,22 @@ uses its old name at compile time, so the JSON stays the one source.
 
 ## Why it exists
 
-Ryan Landvater, 2026-11-24:
-
-> "We will need to make a I2S repo as well … the information that goes into
-> the slide when it is initially scanned by different scanners (acessioning
-> number, stain info, time, date, scanner info like unique device ID). These
-> are the things that need to go into I2S because they're indelible
-> characteristics of the slide and not patient HL7 metadata."
-
-> "We'll call the accessioning number DigitalSlideIdentifier(DSI)"
-
-> "let's have I2S be a JSON specification that gets compiled into C++ source
-> like the IFE"
+A slide is given facts when it is scanned that never change afterwards: the
+laboratory's identifier for it, its stain, the date and time of the scan, and
+the identity of the scanner, down to its unique device identifier. These are
+characteristics of the slide, kept apart from the patient's clinical metadata
+(HL7 v2 or FHIR). I2S names them so that every scanner's output can be
+written with one vocabulary.
 
 An `.iris` file that marks its attributes `METADATA_I2S` promises that every
 pair is a fact fixed when the slide was scanned that identifies no individual;
-clinical and identifying facts travel in IFE's clinical metadata stream (HL7
-v2 or FHIR) instead. I2S keys follow DICOM keywords where DICOM has the fact,
-and diverge where it does not: `DigitalSlideIdentifier` has no DICOM keyword.
+clinical and identifying facts travel in IFE's clinical metadata stream
+instead. I2S keys follow DICOM keywords where DICOM has the fact, and diverge
+where it does not: `DigitalImageIdentifier` (DII), the laboratory's accession
+identifier for the slide, has no DICOM keyword.
 
 ## Status
 
-**Draft 0.1, private.** The vocabulary is seeded with the Digital Slide
+**Draft 0.1, private.** The vocabulary is seeded with the Digital Image
 Identifier and the scanner's identity only. Nothing here is stable until a
 version is ratified, and no licence has been chosen yet.

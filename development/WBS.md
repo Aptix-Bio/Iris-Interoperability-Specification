@@ -10,7 +10,7 @@ it are the checkable implementation, red first. Requirements live in
 
 - **A sprint is one work package, one branch, one pull request.** It is sized
   to a few days *(estimate, not measured)*, ends in a milestone that can be run
-  and seen, and closes with **VERIFY** (Ryan reviews) and **Gate** (CI green on
+  and seen, and closes with **VERIFY** (the maintainer reviews) and **Gate** (CI green on
   the pull request). The branch is `feature/<SprintName>_<n>`.
   [README.md](README.md) gives the pull request's sections.
 - **Red first.** A task's first step is the test shown failing, with its
@@ -25,31 +25,33 @@ it are the checkable implementation, red first. Requirements live in
 
 ```mermaid
 flowchart LR
-    S1["SpecScaffold_1"] --> S2["VocabularyFromScanners_2"]
-    S1 --> S3["IdentityClasses_3"]
-    S2 --> S4["IfeAndIrisSlideAdoption_4"]
-    S3 --> S4
-    S4 --> S5["Release_5"]
+    S1["SpecScaffold_1"] --> S2["SpecLintAndDocument_2"]
+    S2 --> S3["VocabularyFromScanners_3"]
+    S2 --> S4["IdentityClasses_4"]
+    S3 --> S5["IfeAndIrisSlideAdoption_5"]
+    S4 --> S5
+    S5 --> S6["Release_6"]
 ```
 
 | Sprint | Milestone (what is shown working) | Status |
 |---|---|---|
-| SpecScaffold_1 | `ctest` green on a header generated from `spec/*.json`; the generator refuses a removed key, a retyped key and a duplicate name | `doing` |
-| VocabularyFromScanners_2 | the keys every scanner family writes at scan time (stain, scan date and time, optics, resolution) generated and tested, each DICOM mapping verified | `todo` |
-| IdentityClasses_3 | every key's identity class decided by Ryan; no key left `UNDER_REVIEW` that a release depends on | `blocked` on Ryan's answers (Open questions) |
-| IfeAndIrisSlideAdoption_4 | IFE's `METADATA_I2S` text points to I2S; Iris-Slide refuses an attribute key the generated header does not define | `todo` |
-| Release_5 | a licence chosen, version 1.0 ratified, the repository public | `blocked` on the licence |
+| SpecScaffold_1 | `ctest` green on a header generated from `spec/*.json`; the generator refuses a removed key, a retyped key and a duplicate name | `doing` (PR #1 open) |
+| SpecLintAndDocument_2 | `cmake --workflow --preset gates` runs the linter, the generator check, the tests and the AsciiDoc render, locally and on CI, and CI publishes the HTML and PDF | `doing` |
+| VocabularyFromScanners_3 | the keys every scanner family writes at scan time (stain, scan date and time, optics, resolution) generated and tested, each DICOM mapping verified | `todo` |
+| IdentityClasses_4 | every key's identity class decided by the maintainer; no key left `UNDER_REVIEW` that a release depends on | `blocked` on the maintainer's answers (Open questions) |
+| IfeAndIrisSlideAdoption_5 | IFE's `METADATA_I2S` text points to I2S; Iris-Slide refuses an attribute key the generated header does not define | `todo` |
+| Release_6 | a licence chosen, version 1.0 ratified, the repository public | `blocked` on the licence |
 
 ## SpecScaffold_1 — the specification compiles into C++ `doing`
 
-Purpose: Ryan, 2026-11-24: "let's have I2S be a JSON specification that gets
-compiled into C++ source like the IFE". Milestone: `cmake --preset debug &&
+Purpose: I2S is a JSON specification compiled into C++ source, as IFE is
+(decided 2026-11-24). Milestone: `cmake --preset debug &&
 cmake --build --preset debug && ctest --preset debug` green on a header
 generated at configure from `spec/*.json`, and `uv run pytest` showing the
 generator refuse a removed key, a retyped key and a duplicate name. Branch
 `feature/SpecScaffold_1`.
 
-- [x] **ReadmeOnMain_1.1** — `README.md` on `main`: what I2S is, Ryan's words,
+- [x] **ReadmeOnMain_1.1** — `README.md` on `main`: what I2S is, its goals,
   draft and private. Commit 2e7f472
 - [x] **KeySchema_1.2** — `spec/i2s_header.json` (version 0.1, draft,
   revisions) and `spec/i2s_keys.json` (value types, identity classes, keys,
@@ -98,24 +100,76 @@ generator refuse a removed key, a retyped key and a duplicate name. Branch
   `style_guide.md` (adapted from Iris-Slide's copy), `ci_runners.md`;
   `CONTRIBUTING.md` at the root [Process_01]. Commit 7204884
 - [x] **CiWorkflow_1.9** — `.github/workflows/ci.yml` on Blacksmith's
-  `blacksmith-2vcpu-ubuntu-2404` (Ryan, 2026-11-24: "We should be using
-  blacksmith for our CI runners"): non-draft pull requests and by hand only,
+  `blacksmith-2vcpu-ubuntu-2404` (every CI job runs on Blacksmith, decided
+  2026-11-24): non-draft pull requests and by hand only,
   documentation-only changes skipped, 15-minute timeout, actions pinned by
   commit, uv and `dependencies/` cached [Ci_01]. Commit 7204884
   - [x] Rehearsed locally on macOS: the workflow's configure line, `--check`
     and `ctest --preset release` green. Not rehearsed in a Linux container;
     the first Blacksmith run (45429051380) confirmed the image's CMake and
     Ninja and the GCC-side compile-fail message
-- [ ] **VERIFY:** Ryan reads `spec/i2s_keys.json` and the generated header and
+- [ ] **VERIFY:** the maintainer reads `spec/i2s_keys.json` and the generated header and
   answers the open questions
 - [x] **Gate:** CI green on pull request #1: run 45429051380 on
   `blacksmith-2vcpu-ubuntu-2404`, pytest 13 passed, `--check` current, ctest
   7 of 7, 1 min 20 s
 
-## VocabularyFromScanners_2 — the scan-time vocabulary `todo` · needs SpecScaffold_1
+## SpecLintAndDocument_2 — a linted specification, rendered for review `doing` · needs SpecScaffold_1
 
-Purpose: Ryan's list, "acessioning number, stain info, time, date, scanner
-info like unique device ID". Milestone: every key below that Ryan accepts is
+Purpose: a linter over the current version of I2S that checks the files are
+formatted correctly, times are ISO 8601, versions are consistent and nothing
+is dropped; and an AsciiDoc document generated from the specification, as
+IFE's is, for a person to review (requested 2026-11-24). Milestone: `cmake
+--workflow --preset gates` runs the linter, the generator check, the tests and
+the document render in that order, locally and on Blacksmith, and CI uploads
+the HTML and PDF. Branch `feature/SpecLintAndDocument_2`, pull request based on
+`feature/SpecScaffold_1`.
+
+- [x] **DiiRename_2.1** — Decision_06: `DigitalImageIdentifier` (`DII`) and
+  `DigitalImageIdentifierIsPHI` (`DII_is_PHI`) in place in 0.1; the
+  compile-fail test names the old `Key::DigitalSlideIdentifier`
+  [Generated_03, Generated_04, PhiFlag_01]
+  - [x] Red: the gate refused the rename, `generator: REMOVED
+    keys.DigitalSlideIdentifier` and `REMOVED keys.DigitalSlideIdentifierIsPHI`;
+    `uv run pytest`: 7 failed; `--refresh-witness` refused the same way
+  - [x] Green after the two old entries were deleted from the witness by hand
+    and the new ones recorded: `uv run pytest` 13 passed, `ctest --preset
+    debug` 7 of 7, the compile-fail test matching `error: no member named
+    'DigitalSlideIdentifier' in 'I2S::Key'`
+- [x] **NoQuotes_2.2** — Decision_07 across README, CONTRIBUTING, the spec,
+  `development/` and the workflow; pull request #1's body rewritten [Process_01]
+  - [x] `grep -rni ryan` over the public files finds only the author line in
+    `spec/i2s_header.json`
+- [ ] **CanonicalFormat_2.3** — `--validate` fails on a spec file that is not
+  in canonical form; `--fix` rewrites it [Lint_01]
+- [ ] **NameRules_2.4** — PascalCase key names, unique short names, ASCII
+  names [Lint_02]
+- [ ] **DicomRules_2.5** — tags `GGGG,EEEE`, VRs from DICOM's list,
+  `verified` entries with a URL and an ISO date [Lint_03]
+- [ ] **TimeRules_2.6** — every date and time ISO 8601; a DATE_TIME carries a
+  UTC offset, its range and precision stated [Lint_04]
+- [ ] **VersionRules_2.7** — the header version is the newest revision;
+  revisions in order with no gap or repeat; every version group is a revision;
+  nothing added under an older version [Lint_05]
+- [ ] **NothingDropped_2.8** — the gate's missing cases: a key moved between
+  version groups, a short name removed, a key un-deprecated, a PHI flag
+  removed or its absent default changed [AppendOnly_02]
+- [ ] **Consistency_2.9** — `identity_note` exactly when `UNDER_REVIEW`; PHI
+  flags name BOOLEAN keys; multiplicity in an allowed form [Lint_06]
+- [ ] **AsciiDocDocument_2.10** — `spec/i2s_spec.adoc` narrative and
+  generated `.adoc` includes in place of the Markdown document [Document_02]
+- [ ] **Gates_2.11** — one entry point, `cmake --workflow --preset gates`
+  [Gates_01]
+- [ ] **CiDocument_2.12** — CI runs the gates and uploads the HTML and PDF
+  [Ci_02]
+- [ ] **VERIFY:** the maintainer reads the rendered document
+- [ ] **Gate:** CI green on the pull request
+
+## VocabularyFromScanners_3 — the scan-time vocabulary `todo` · needs SpecScaffold_1
+
+Purpose: the scan-time facts named on 2026-11-24 (the accession identifier,
+stain, date and time of the scan, the scanner's identity down to its unique
+device identifier). Milestone: every key below that the maintainer accepts is
 in `spec/i2s_keys.json` with its DICOM mapping verified, generated and tested.
 Nothing here is added until this sprint.
 
@@ -146,78 +200,81 @@ at the start of the sprint):
 - **Container and specimen identity** (`ContainerIdentifier`,
   `SpecimenIdentifier`, `BarcodeValue`): the research classes them ambiguous,
   since a laboratory often derives them from the accession number; they go
-  with the DSI question.
+  with the DII question.
 
-- [ ] **Analysis_2.1** — the research reports kept as written in
+- [ ] **Analysis_3.1** — the research reports kept as written in
   `development/analysis/`
-- [ ] **CodeSets_2.2** — the value type `CODE` and a `code_sets` section;
+- [ ] **CodeSets_3.2** — the value type `CODE` and a `code_sets` section;
   red: a CODE key without a code set refused
-- [ ] **ScanTimeKeys_2.3** — the keys Ryan accepts, each DICOM mapping
+- [ ] **ScanTimeKeys_3.3** — the keys the maintainer accepts, each DICOM mapping
   verified with URL and date
-- [ ] **VERIFY:** Ryan accepts the key list
+- [ ] **VERIFY:** the maintainer accepts the key list
 - [ ] **Gate:** CI green on the pull request
 
-## IdentityClasses_3 — every key's identity decided `blocked` · needs Ryan's answers
+## IdentityClasses_4 — every key's identity decided `blocked` · needs the maintainer's answers
 
 Purpose: a file's I2S attributes promise to identify no individual, so no key
 can stay `UNDER_REVIEW` into a release. Milestone: no key a release depends
-on is `UNDER_REVIEW`; each decision recorded with Ryan's words.
+on is `UNDER_REVIEW`; each decision recorded with its date.
 
-- [ ] **DsiIdentity_3.1** — Ryan answers Open question 1
-- [ ] **DeviceIdentity_3.2** — Ryan answers Open question 2
-- [ ] **PromiseAndFlag_3.3** — Ryan answers Open question 3; IFE's
-  `METADATA_I2S` text changes with the answer (IfeAndIrisSlideAdoption_4)
-- [ ] **VERIFY:** Ryan reviews the identity classes
+- [ ] **IdentifierIdentity_4.1** — the maintainer answers Open question 1
+- [ ] **DeviceIdentity_4.2** — the maintainer answers Open question 2
+- [ ] **PromiseAndFlag_4.3** — the maintainer answers Open question 3; IFE's
+  `METADATA_I2S` text changes with the answer (IfeAndIrisSlideAdoption_5)
+- [ ] **VERIFY:** the maintainer reviews the identity classes
 - [ ] **Gate:** CI green on the pull request
 
-## IfeAndIrisSlideAdoption_4 — the file format and the codec use I2S `todo` · needs VocabularyFromScanners_2, IdentityClasses_3
+## IfeAndIrisSlideAdoption_5 — the file format and the codec use I2S `todo` · needs VocabularyFromScanners_3, IdentityClasses_4
 
 Purpose: I2S is the vocabulary IFE's `METADATA_I2S` names. Milestone: an
 Iris-Slide encode refuses, by name, an attribute key that `I2S_Keys.hpp` does
 not define, under `METADATA_I2S`.
 
-- [ ] **IfeText_4.1** — IFE's `spec/ife_constants.json` `METADATA_I2S`
+- [ ] **IfeText_5.1** — IFE's `spec/ife_constants.json` `METADATA_I2S`
   description points to this specification and its version (a pull request
   on IFE)
-- [ ] **IrisSlideAllowlist_4.2** — Iris-Slide consumes the `i2s` CMake target
+- [ ] **IrisSlideAllowlist_5.2** — Iris-Slide consumes the `i2s` CMake target
   by FetchContent at a pinned commit and uses `I2S::key_from_name` as its
   attribute allowlist; red: an encode with a key I2S does not define is
   accepted
-- [ ] **VERIFY:** Ryan encodes a slide and reads its attributes
+- [ ] **VERIFY:** the maintainer encodes a slide and reads its attributes
 - [ ] **Gate:** CI green on both pull requests
 
-## Release_5 — public `blocked` · needs every sprint above and the licence
+## Release_6 — public `blocked` · needs every sprint above and the licence
 
-- [ ] **Licence_5.1** — Ryan chooses the licence (Open question 4)
-- [ ] **Ratify_5.2** — version 1.0 ratified in `spec/i2s_header.json`; the
+- [ ] **Licence_6.1** — the maintainer chooses the licence (Open question 4)
+- [ ] **Ratify_6.2** — version 1.0 ratified in `spec/i2s_header.json`; the
   witness frozen for 1.0
-- [ ] **Publish_5.3** — Ryan makes the repository public
+- [ ] **Publish_6.3** — the maintainer makes the repository public
 - [ ] **VERIFY / Gate**
 
 ## Decisions
 
-| ID | Date | Decision | Ryan's words |
-|---|---|---|---|
-| Decision_01 | 2026-11-24 | I2S is a JSON specification compiled into C++ source, as IFE is | "let's have I2S be a JSON specification that gets compiled into C++ source like the IFE" |
-| Decision_02 | 2026-11-24 | The accessioning number is the key `DigitalSlideIdentifier`, short name `DSI`; it has no DICOM keyword | "We'll call the accessioning number DigitalSlideIdentifier(DSI)" |
-| Decision_03 | 2026-11-24 | The DSI has a companion BOOLEAN `DSI_is_PHI` (`DigitalSlideIdentifierIsPHI`) telling a de-identifier whether to scramble it | "We can add in the description that DSI has a separate DSI_is_PHI:bool so we know if it needs to be scrambled during deidentification" |
-| Decision_04 | 2026-11-24 | Settled: when the DSI is present and `DSI_is_PHI` is absent, a reader and a de-identifier shall treat the DSI as PHI and scramble it (`absent_means_phi: true`, witnessed) | "Absent flag should default to true, scramble it" |
-| Decision_05 | 2026-11-24 | CI runs on Blacksmith runners | "We should be using blacksmith for our CI runners" |
+| ID | Date | Decision |
+|---|---|---|
+| Decision_01 | 2026-11-24 | I2S is a JSON specification compiled into C++ source, as IFE is |
+| Decision_02 | 2026-11-24 | The accessioning number is a key with a short name and no DICOM keyword (first `DigitalSlideIdentifier` / `DSI`; renamed by Decision_06) |
+| Decision_03 | 2026-11-24 | The identifier has a companion BOOLEAN flag telling a de-identifier whether to scramble it |
+| Decision_04 | 2026-11-24 | Settled: when the identifier is present and its flag is absent, a reader and a de-identifier shall treat the identifier as PHI and scramble it (`absent_means_phi: true`, witnessed) |
+| Decision_05 | 2026-11-24 | CI runs on Blacksmith runners |
+| Decision_06 | 2026-11-24 | `DigitalSlideIdentifier` (`DSI`) is renamed `DigitalImageIdentifier` (`DII`) and its flag `DigitalImageIdentifierIsPHI` (`DII_is_PHI`), in place in the unreleased 0.1 group with no deprecated alias; the absent-means-PHI rule is unchanged. The gate still refuses a rename: the witness was refreshed by hand, deleting the two old entries, as the reviewed act that permits this one rename before the first release |
+| Decision_07 | 2026-11-24 | No public file quotes a person; goals and decisions are stated as dated requirements, and an owner is "the maintainer". Author lines in the specification header are attribution and stay |
 
-Judgment calls made in SpecScaffold_1, for Ryan's review:
+Judgment calls made in SpecScaffold_1, for the maintainer's review:
 
 - The identity class of `DeviceSerialNumber` and `UniqueDeviceIdentifier` is
   `UNDER_REVIEW`, against the brief that listed them as clearly identifying
   no person: `identity_rules.md` found DICOM PS3.15's Basic Profile removes
   both unless Retain Device Identity is used, and HIPAA Safe Harbor lists
-  "Device identifiers and serial numbers" (Open question 2).
+  device identifiers and serial numbers, 45 CFR 164.514(b)(2)(i)(M) (Open
+  question 2).
 - The UDI key is named `UniqueDeviceIdentifier` after the DICOM keyword of
   the UDI Macro's attribute (0018,1009), with multiplicity `1-n` because
   DICOM's UDI Sequence holds one item per issuing agency.
 - Only an identity class `UNDER_REVIEW` may change under the append-only
   gate; any other changed fact fails, and `--refresh-witness` refuses while
   one does.
-- `CODE` and code sets wait for VocabularyFromScanners_2, where the stain
+- `CODE` and code sets wait for VocabularyFromScanners_3, where the stain
   vocabulary gives them a first user.
 - Generated output is gitignored and regenerated at every configure, as in
   IFE; the generator runs at every configure (instead of IFE's run-when-missing
@@ -230,21 +287,21 @@ Judgment calls made in SpecScaffold_1, for Ryan's review:
 
 ## Open questions
 
-1. **Does an accession-derived DSI identify an individual?** The DSI's
-   identity class is `UNDER_REVIEW`; `DSI_is_PHI` carries the answer per file.
+1. **Does an accession-derived DII identify an individual?** The DII's
+   identity class is `UNDER_REVIEW`; `DII_is_PHI` carries the answer per file.
    Research under way (`identity_rules.md` lays out options, without a
    recommendation).
 2. **Do the scanner's serial number and UDI stay in I2S as identifying no
    individual?** (Judgment calls, above.)
-3. **A file whose `DSI_is_PHI` is true carries PHI in its I2S attributes**,
+3. **A file whose `DII_is_PHI` is true carries PHI in its I2S attributes**,
    which contradicts IFE's promise that `METADATA_I2S` pairs identify no
    individual. Either the promise gains an exception for flagged keys, or a
-   PHI DSI moves to the clinical metadata stream.
-4. **Licence.** No LICENSE file until Ryan chooses; IFE's code is MIT.
+   PHI DII moves to the clinical metadata stream.
+4. **Licence.** No LICENSE file until the maintainer chooses; IFE's code is MIT.
 5. **Several values in one attribute.** `SoftwareVersions` and
    `UniqueDeviceIdentifier` hold `1-n` values; how a file separates them in
    one attribute value (DICOM separates string values with a backslash) is
-   for IfeAndIrisSlideAdoption_4.
+   for IfeAndIrisSlideAdoption_5.
 
 ## Session log
 

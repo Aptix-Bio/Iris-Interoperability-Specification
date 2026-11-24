@@ -3,7 +3,7 @@
 Binding conventions for I2S's code and plans: the JSON specification, the
 generated C++20 header and its tests, and the Python generator. Project
 specifics live in [CONTRIBUTING.md](../CONTRIBUTING.md); where they are more
-specific than this guide, they win. Adopted 2026-11-24 from the style guide Ryan keeps for the
+specific than this guide, they win. Adopted 2026-11-24 from the style guide the maintainer keeps for the
 Iris repositories, as Iris-Slide adopted it, with the parts that concern
 libraries I2S does not have (codecs, threads, bindings) cut to what applies.
 

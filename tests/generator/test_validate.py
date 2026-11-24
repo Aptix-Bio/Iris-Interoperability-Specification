@@ -76,7 +76,7 @@ def test_added_key_passes_as_a_note() -> None:
 def test_identity_under_review_may_be_decided() -> None:
     header, keys, baseline = _documents()
     edited = copy.deepcopy(keys)
-    entry = _keys_01(edited)["DigitalSlideIdentifier"]
+    entry = _keys_01(edited)["DigitalImageIdentifier"]
     assert isinstance(entry, dict)
     entry["identity"] = "NONE"
     entry["identity_note"] = None
@@ -142,10 +142,10 @@ def test_generation_is_deterministic(tmp_path: Path) -> None:
 def test_phi_flag_must_name_a_boolean_key() -> None:
     header, keys, _ = _documents()
     edited = copy.deepcopy(keys)
-    entry = _keys_01(edited)["DigitalSlideIdentifier"]
+    entry = _keys_01(edited)["DigitalImageIdentifier"]
     assert isinstance(entry, dict)
     entry["phi_flag"] = {"key": "Manufacturer", "absent_means_phi": True}
-    with pytest.raises(SpecError, match="keys.DigitalSlideIdentifier.phi_flag: Manufacturer is TEXT, not BOOLEAN"):
+    with pytest.raises(SpecError, match="keys.DigitalImageIdentifier.phi_flag: Manufacturer is TEXT, not BOOLEAN"):
         parse(header, edited)
 
 
@@ -153,10 +153,10 @@ def test_phi_flag_must_name_a_boolean_key() -> None:
 def test_phi_flag_must_name_a_defined_key() -> None:
     header, keys, _ = _documents()
     edited = copy.deepcopy(keys)
-    entry = _keys_01(edited)["DigitalSlideIdentifier"]
+    entry = _keys_01(edited)["DigitalImageIdentifier"]
     assert isinstance(entry, dict)
-    entry["phi_flag"] = {"key": "DSI_is_PHI_typo", "absent_means_phi": True}
-    with pytest.raises(SpecError, match="keys.DigitalSlideIdentifier.phi_flag: no key named 'DSI_is_PHI_typo'"):
+    entry["phi_flag"] = {"key": "DII_is_PHI_typo", "absent_means_phi": True}
+    with pytest.raises(SpecError, match="keys.DigitalImageIdentifier.phi_flag: no key named 'DII_is_PHI_typo'"):
         parse(header, edited)
 
 
@@ -164,12 +164,12 @@ def test_phi_flag_must_name_a_defined_key() -> None:
 def test_changed_absent_default_is_rejected() -> None:
     header, keys, baseline = _documents()
     edited = copy.deepcopy(keys)
-    entry = _keys_01(edited)["DigitalSlideIdentifier"]
+    entry = _keys_01(edited)["DigitalImageIdentifier"]
     assert isinstance(entry, dict)
-    entry["phi_flag"] = {"key": "DigitalSlideIdentifierIsPHI", "absent_means_phi": False}
+    entry["phi_flag"] = {"key": "DigitalImageIdentifierIsPHI", "absent_means_phi": False}
     problems, _ = _gate(header, edited, baseline)
     assert problems == [
-        'CHANGED keys.DigitalSlideIdentifier.phi_flag: '
-        '{"absent_means_phi": true, "key": "DigitalSlideIdentifierIsPHI"} -> '
-        '{"absent_means_phi": false, "key": "DigitalSlideIdentifierIsPHI"}'
+        'CHANGED keys.DigitalImageIdentifier.phi_flag: '
+        '{"absent_means_phi": true, "key": "DigitalImageIdentifierIsPHI"} -> '
+        '{"absent_means_phi": false, "key": "DigitalImageIdentifierIsPHI"}'
     ]

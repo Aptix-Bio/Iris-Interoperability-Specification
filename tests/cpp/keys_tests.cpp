@@ -59,11 +59,11 @@ TEST_CASE("every key has a value type and an identity class", "[Generated_02]")
     STATIC_REQUIRE_FALSE(I2S::info(I2S::Key::SoftwareVersions).multiplicity.maximum.has_value());
 }
 
-TEST_CASE("the Digital Slide Identifier is DSI and has no DICOM keyword", "[Generated_03]")
+TEST_CASE("the Digital Image Identifier is DII and has no DICOM keyword", "[Generated_03]")
 {
-    constexpr const I2S::KeyInfo& dsi = I2S::info(I2S::Key::DigitalSlideIdentifier);
-    STATIC_REQUIRE(dsi.short_name == "DSI");
-    STATIC_REQUIRE(I2S::key_from_name("DSI") == I2S::Key::DigitalSlideIdentifier);
+    constexpr const I2S::KeyInfo& dsi = I2S::info(I2S::Key::DigitalImageIdentifier);
+    STATIC_REQUIRE(dsi.short_name == "DII");
+    STATIC_REQUIRE(I2S::key_from_name("DII") == I2S::Key::DigitalImageIdentifier);
     STATIC_REQUIRE_FALSE(dsi.dicom.has_value());
     STATIC_REQUIRE(dsi.identity == I2S::IdentityClass::UNDER_REVIEW);
 }
@@ -91,13 +91,13 @@ constexpr bool every_phi_flag_is_a_boolean_key()
 } // namespace
 
 // RTM PhiFlag_01, PhiFlag_02
-TEST_CASE("the DSI is paired with DSI_is_PHI, which defaults to PHI when absent", "[PhiFlag_01][PhiFlag_02]")
+TEST_CASE("the DII is paired with DII_is_PHI, which defaults to PHI when absent", "[PhiFlag_01][PhiFlag_02]")
 {
     STATIC_REQUIRE(every_phi_flag_is_a_boolean_key());
-    constexpr const auto& flag = I2S::info(I2S::Key::DigitalSlideIdentifier).phi_flag;
-    STATIC_REQUIRE(flag->key == I2S::Key::DigitalSlideIdentifierIsPHI);
+    constexpr const auto& flag = I2S::info(I2S::Key::DigitalImageIdentifier).phi_flag;
+    STATIC_REQUIRE(flag->key == I2S::Key::DigitalImageIdentifierIsPHI);
     STATIC_REQUIRE(flag->absent_means_phi);
-    STATIC_REQUIRE(I2S::key_from_name("DSI_is_PHI") == I2S::Key::DigitalSlideIdentifierIsPHI);
-    STATIC_REQUIRE(I2S::info(I2S::Key::DigitalSlideIdentifierIsPHI).identity == I2S::IdentityClass::NONE);
-    STATIC_REQUIRE_FALSE(I2S::info(I2S::Key::DigitalSlideIdentifierIsPHI).phi_flag.has_value());
+    STATIC_REQUIRE(I2S::key_from_name("DII_is_PHI") == I2S::Key::DigitalImageIdentifierIsPHI);
+    STATIC_REQUIRE(I2S::info(I2S::Key::DigitalImageIdentifierIsPHI).identity == I2S::IdentityClass::NONE);
+    STATIC_REQUIRE_FALSE(I2S::info(I2S::Key::DigitalImageIdentifierIsPHI).phi_flag.has_value());
 }

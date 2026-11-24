@@ -8,7 +8,7 @@ only when its tests run green on CI; code with tests green locally is
 - **Source:** `Goal_nn` (below) or a [WBS](WBS.md) decision.
 - **Sprint:** the WBS sprint that delivers the row.
 - **Status:** Planned → Implemented → Verified (or Partial / Blocked, with a
-  note); Retired when Ryan drops it (the ID is never reused).
+  note); Retired when the maintainer drops it (the ID is never reused).
 - **Tests:** `Unit` (pytest) · `Static` (a `static_assert`, a compile-fail
   test, or a gate that reads the source) · `Contract` (a generated table's
   promise, checked from C++).
@@ -18,7 +18,7 @@ only when its tests run green on CI; code with tests green locally is
 
 ```mermaid
 flowchart LR
-    G["Goal_nn<br/>Ryan's words"] --> R["requirement row"]
+    G["Goal_nn<br/>dated requirement"] --> R["requirement row"]
     R --> C["code<br/>RTM tag"]
     R --> T["test<br/>[ID] tag"]
     T -->|"green on CI"| V["Verified"]
@@ -26,13 +26,16 @@ flowchart LR
 
 ## Goals
 
-| Goal | Ryan's words (2026-11-24) |
+| Goal | Requirement (2026-11-24) |
 |---|---|
-| Goal_01 | "We will need to make a I2S repo as well … the information that goes into the slide when it is initially scanned by different scanners (acessioning number, stain info, time, date, scanner info like unique device ID). These are the things that need to go into I2S because they're indelible characteristics of the slide and not patient HL7 metadata." |
-| Goal_02 | "We'll call the accessioning number DigitalSlideIdentifier(DSI)" |
-| Goal_03 | "let's have I2S be a JSON specification that gets compiled into C++ source like the IFE" |
-| Goal_04 | "We can add in the description that DSI has a separate DSI_is_PHI:bool so we know if it needs to be scrambled during deidentification" · "Absent flag should default to true, scramble it" |
-| Goal_05 | "We should be using blacksmith for our CI runners" |
+| Goal_01 | A repository for I2S holds the facts a slide is given when it is scanned, by any scanner: the laboratory's accession identifier, stain, date and time of the scan, and the scanner's identity down to its unique device identifier. They are indelible characteristics of the slide, kept apart from the patient's HL7 or FHIR metadata |
+| Goal_02 | The accession identifier is a named key with a short name (`DigitalImageIdentifier`, `DII`, after Decision_06) |
+| Goal_03 | I2S is a JSON specification compiled into C++ source, as IFE is |
+| Goal_04 | The identifier has a BOOLEAN flag (`DII_is_PHI`) stating whether it must be scrambled during de-identification; an absent flag means it is PHI and is scrambled |
+| Goal_05 | CI runs on Blacksmith runners |
+| Goal_06 | A linter checks the current version of I2S: formatting, times, versions, and that nothing is dropped |
+| Goal_07 | An AsciiDoc document is generated from the specification, as IFE's is, for a person to review |
+| Goal_08 | No public file quotes a person |
 
 ## Requirements
 
@@ -43,10 +46,10 @@ flowchart LR
 | UniqueNames_01 | A name is defined once: a repeated name in one JSON object, a key in two version groups, or a short name equal to another name is refused | Goal_03 | SpecScaffold_1 | `generator/pipeline.py`, `generator/model.py` | Unit: `test_duplicate_name_in_one_object_is_rejected`, `test_duplicate_name_across_version_groups_is_rejected`, `test_short_name_equal_to_a_key_name_is_rejected` | Verified |
 | Generated_01 | `I2S::key_from_name` returns the key for its name or short name, and `std::nullopt` for any other text | Goal_03 | SpecScaffold_1 | `generator/emit/cpp.py` | Static: `[Generated_01]` | Verified |
 | Generated_02 | Every key has a value type and an identity class from the generated enumerations | Goal_03 | SpecScaffold_1 | `generator/emit/cpp.py` | Static: `[Generated_02]` | Verified |
-| Generated_03 | The DSI is `DigitalSlideIdentifier`, short name `DSI`, with no DICOM attribute; scanner keys carry their verified DICOM tags | Goal_01, Goal_02 | SpecScaffold_1 | `spec/i2s_keys.json` | Static: `[Generated_03]` | Verified |
-| Generated_04 | A key's old name fails to compile after a rename | Goal_03 | SpecScaffold_1 | `generator/emit/cpp.py` | Static: `i2s_renamed_key_fails_to_compile` | Verified |
-| PhiFlag_01 | A key may name a BOOLEAN flag key stating per file whether its value is PHI; a flag naming no key or a key that is not BOOLEAN is refused; the DSI's flag is `DSI_is_PHI` | Goal_04 | SpecScaffold_1 | `generator/model.py`, `generator/emit/cpp.py` | Unit: `test_phi_flag_must_name_a_boolean_key`, `test_phi_flag_must_name_a_defined_key`; Static: `[PhiFlag_01]` | Verified |
-| PhiFlag_02 | When the DSI is present and `DSI_is_PHI` is absent, a reader and a de-identifier treat the DSI as PHI; the default is witnessed and generated as `PhiFlag::absent_means_phi` | Goal_04 | SpecScaffold_1 | `spec/i2s_keys.json`, `generator/emit/cpp.py` | Unit: `test_changed_absent_default_is_rejected`; Static: `[PhiFlag_02]` | Verified |
+| Generated_03 | The accession identifier is `DigitalImageIdentifier`, short name `DII`, with no DICOM attribute; scanner keys carry their verified DICOM tags | Goal_01, Goal_02 | SpecScaffold_1 | `spec/i2s_keys.json` | Static: `[Generated_03]` | Verified |
+| Generated_04 | A key's old name fails to compile after a rename (the test names `DigitalSlideIdentifier`, renamed 2026-11-24) | Goal_03 | SpecScaffold_1 | `generator/emit/cpp.py` | Static: `i2s_renamed_key_fails_to_compile` | Verified |
+| PhiFlag_01 | A key may name a BOOLEAN flag key stating per file whether its value is PHI; a flag naming no key or a key that is not BOOLEAN is refused; the DII's flag is `DII_is_PHI` | Goal_04 | SpecScaffold_1 | `generator/model.py`, `generator/emit/cpp.py` | Unit: `test_phi_flag_must_name_a_boolean_key`, `test_phi_flag_must_name_a_defined_key`; Static: `[PhiFlag_01]` | Verified |
+| PhiFlag_02 | When the DII is present and `DII_is_PHI` is absent, a reader and a de-identifier treat the DII as PHI; the default is witnessed and generated as `PhiFlag::absent_means_phi` | Goal_04 | SpecScaffold_1 | `spec/i2s_keys.json`, `generator/emit/cpp.py` | Unit: `test_changed_absent_default_is_rejected`; Static: `[PhiFlag_02]` | Verified |
 | Document_01 | A readable specification document is generated from the same JSON, byte-stable | Goal_03 | SpecScaffold_1 | `generator/emit/docs.py` | Unit: `test_generation_is_deterministic` | Verified |
 | Process_01 | Work runs in sprints that each end in a milestone and one pull request, every task red first | Goal_03 | SpecScaffold_1 | `development/` | review | Implemented |
 | Ci_01 | CI runs the generator's checks and `ctest` on non-draft pull requests on Blacksmith, pinned and bounded | Goal_05 | SpecScaffold_1 | `.github/workflows/ci.yml` | the workflow's own run (45429051380) | Verified |

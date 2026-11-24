@@ -30,4 +30,4 @@ target_link_libraries(i2s_renamed_key PRIVATE I2S::i2s)
 add_test(NAME i2s_renamed_key_fails_to_compile
     COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --target i2s_renamed_key --config $<CONFIG>)
 set_tests_properties(i2s_renamed_key_fails_to_compile PROPERTIES
-    PASS_REGULAR_EXPRESSION "error[^\n]*AccessionNumber")
+    PASS_REGULAR_EXPRESSION "error[^\n]*DigitalSlideIdentifier")

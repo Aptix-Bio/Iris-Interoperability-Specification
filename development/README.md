@@ -8,13 +8,13 @@ sprints, tasks and requirements.
 | File | Use it to… |
 |---|---|
 | [WBS.md](WBS.md) | track the work sprint by sprint: each sprint's milestone and pull request, its tasks and their red-first steps, each tick with its evidence; the decisions and the open questions |
-| [RTM.md](RTM.md) | trace each requirement back to Ryan's goals and forward to code and tests, with status |
+| [RTM.md](RTM.md) | trace each requirement back to the project's goals and forward to code and tests, with status |
 | [style_guide.md](style_guide.md) | the binding conventions for code, plans and prose |
 | [ci_runners.md](ci_runners.md) | the rules every workflow follows: when a runner runs, reuse, caches, robustness |
 
 ```mermaid
 flowchart LR
-    G["RTM goals<br/>Ryan's words"] --> R["RTM requirements"]
+    G["RTM goals<br/>dated requirements"] --> R["RTM requirements"]
     R --> WBS["WBS<br/>sprint → task → step"]
     WBS -->|"evidence"| R
     WBS -->|"one sprint, one branch"| PR["pull request<br/>milestone shown, CI green"]
@@ -32,13 +32,13 @@ milestone someone can see working, and one pull request.
 2. Each task starts with a test shown red, recorded with its failure; then the
    code that turns it green, with the evidence (test counts, the command run).
 3. The milestone is demonstrated: a command anyone can run, and its output.
-4. The sprint ends with a **VERIFY** step for Ryan and a **Gate** step: CI
+4. The sprint ends with a **VERIFY** step for the maintainer and a **Gate** step: CI
    green on the pull request. Nothing from the next sprint is started on the
    same branch.
 
 The pull request's description has these sections, in this order: Summary ·
 WBS (the sprint's tasks, ticked, with evidence and commit links) · RTM (rows
-changed, with evidence) · Decisions (dated, with Ryan's words) · Measurements
+changed, with evidence) · Decisions (dated, each stated as a requirement) · Measurements
 (when any were taken) · Test results (per cell, local and CI) · Red first ·
 Failures fixed (symptom, root cause, fix, commit) · Clinical impact (what a
 pathologist would see differently) · Security impact (new input parsed? new

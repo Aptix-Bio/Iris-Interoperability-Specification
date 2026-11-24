@@ -44,7 +44,7 @@ three sections, each grouped by the version that introduced its members
 | Key field | Meaning |
 |---|---|
 | (the member name) | the key, PascalCase; the attribute key in a file and the C++ enumerator `I2S::Key::<name>` |
-| `short_name` | a shorter name Ryan gave the key (`DSI`), or `null`; `I2S::key_from_name` accepts it too, so names and short names share one namespace |
+| `short_name` | a shorter name the maintainer gave the key (`DII`), or `null`; `I2S::key_from_name` accepts it too, so names and short names share one namespace |
 | `dicom` | the DICOM attribute the key corresponds to (`keyword`, `tag` as `GGGG,EEEE`, `vr`, the `sequence` whose items carry it or `null`, and `verified`: the URLs and date the mapping was checked against the standard), or `null` where I2S diverges from DICOM |
 | `value_type` | a member of `value_types` |
 | `multiplicity` | how many values: `1`, `1-3`, or `1-n` for no upper bound |
