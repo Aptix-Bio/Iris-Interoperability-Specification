@@ -91,20 +91,44 @@ laboratory. I2S therefore carries the answer per file, in the BOOLEAN key
 
 The flag is a fact about the DII and identifies no one itself.
 
+== Relation to IFE
+
+I2S defines a vocabulary. For each key it states the name, the short name, the
+value type, the DICOM value representation (VR) the value is written as, the
+text of one value under that VR, the VR's limits, the identity class, and the
+PHI flag rule. It defines no container, byte layout, wire format or separator
+between keys.
+
+The container is the Iris File Extension's attribute block: an attributes
+block whose FORMAT is `METADATA_I2S`, sliced by its attribute sizes array into
+key and value byte runs (IFE 1.1, sections Attributes and Attribute Sizes
+Array; https://github.com/Aptix-Bio/Iris-File-Extension). A key's name, in
+ASCII, is the bytes IFE stores as the attribute key, and the value's text, in
+UTF-8, is the bytes it stores as an `ATTRIBUTE_STRING` value. I2S's limits fit
+IFE's: a key name is far shorter than the 65 535 bytes of IFE's 16-bit
+KEY_SIZE, and the longest value, a UT of 2^32^ - 2 bytes, fits IFE's 32-bit
+VALUE_SIZE.
+
+The C++ class `I2S::Attributes` is an adapter between typed values and those
+(key name, value text) pairs. It converts in both directions and holds no
+other format.
+
 == Value Types
 
-A key's value is written as text. Each value type defines the text's lexical
-form; the example beside each is checked against that form whenever the
-specification is validated.
+A key's value is written as text, encoded as a DICOM value representation as
+PS3.5 section 6.2 defines it. Each value type names the VRs it may be written
+as, and each key names its VR.
 
 include::{generated}/value_types.adoc[]
 
-A `DATE_TIME` *shall* carry a UTC offset. Its precision is the second, with an
-optional fraction to the microsecond, and its range is 0001-01-01 to
-9999-12-31.
+include::{generated}/value_representations.adoc[]
 
-A key with multiplicity `1-n` holds one or more values; `n` means no upper
-bound.
+A `DATE_TIME` is a DT. I2S requires every component to the second and the UTC
+offset, which DICOM leaves optional, and writes the fraction to the
+microsecond, so a value written by I2S is always 26 bytes. A value of several
+values joins them with the backslash, DICOM's value delimiter; only the string
+VRs that allow it hold several values, and in this version only `TEXT` keys
+do.
 
 == Keys
 

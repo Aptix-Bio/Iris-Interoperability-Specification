@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date
 from urllib.parse import urlsplit
 
 Json = dict[str, "Json"] | list["Json"] | str | int | float | bool | None
@@ -36,11 +36,12 @@ RATIFIED = "ratified"
 HEADER_FIELDS = ("name", "abbreviation", "repository", "version", "status", "revisions")
 VERSION_FIELDS = ("major", "minor")
 REVISION_FIELDS = ("version", "status", "date", "authors", "summary")
-KEYS_DOCUMENT_FIELDS = ("value_types", "identity_classes", "keys")
+KEYS_DOCUMENT_FIELDS = ("value_representations", "value_types", "identity_classes", "keys")
 SECTION_FIELDS = ("description", "i2s_version")
-VALUE_TYPE_FIELDS = ("description", "example")
+VR_FIELDS = ("description", "max_length", "length_unit", "multiple_values", "example", "verified")
+VALUE_TYPE_FIELDS = ("description", "vrs")
 IDENTITY_CLASS_FIELDS = ("description",)
-KEY_FIELDS = ("short_name", "dicom", "value_type", "multiplicity", "identity",
+KEY_FIELDS = ("short_name", "dicom", "value_type", "vr", "multiplicity", "identity",
               "identity_note", "phi_flag", "deprecated", "description")
 DICOM_FIELDS = ("keyword", "tag", "vr", "sequence", "verified")
 SEQUENCE_FIELDS = ("keyword", "tag")
@@ -55,9 +56,19 @@ _VERSION = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
 _TAG = re.compile(r"([0-9A-F]{4}),([0-9A-F]{4})")
 _MULTIPLICITY = re.compile(r"([1-9][0-9]*)(?:-([1-9][0-9]*|n))?")
 _DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
-_DATE_TIME = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})?")
-_DECIMAL = re.compile(r"[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]+)?")
-_INTEGER = re.compile(r"[+-]?[0-9]+")
+_DT = re.compile(r"([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})(\.[0-9]{1,6})?(([+-])([0-9]{2})([0-9]{2}))?")
+_DS = re.compile(r"[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]+)?")
+_IS = re.compile(r"[+-]?[0-9]+")
+_CS = re.compile(r"[A-Z0-9 _]+")
+TEXT = "TEXT"
+# Names the generated and hand-written C++ already declare in namespace I2S. A
+# key or short name equal to one would collide with it, since every key and
+# short name becomes an I2S:: constant.
+RESERVED_NAMES = frozenset({
+    "Attributes", "DicomAttribute", "DicomSequence", "DicomTag", "Element", "Error", "IdentityClass", "Key",
+    "KeyInfo", "Multiplicity", "Pair", "PhiFlag", "Result", "Slot", "Time", "TypedKey", "Value", "ValueOf",
+    "ValueType", "Vr", "VrInfo", "decode", "encode", "info", "key_from_name", "name",
+})
 
 # DICOM PS3.5 2026e, Table 6.2-1, read 2026-11-24 from
 # https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html
@@ -82,11 +93,11 @@ class Version:
 
 @dataclass(frozen=True)
 class Member:
-    """A value type (with its example) or an identity class (example None)."""
+    """A value type (with the VRs it may be written as) or an identity class (no VRs)."""
     name: str
     since: Version
     description: str
-    example: str | None
+    vrs: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -121,6 +132,19 @@ class Dicom:
 
 
 @dataclass(frozen=True)
+class ValueRepresentation:
+    """A DICOM VR as I2S writes it: one value's text."""
+    name: str
+    since: Version
+    description: str
+    max_length: int
+    length_unit: str  # "bytes" or "characters"
+    multiple_values: bool
+    example: str
+    verified: tuple[Verified, ...]
+
+
+@dataclass(frozen=True)
 class Multiplicity:
     minimum: int
     maximum: int | None  # None: no upper bound ("n")
@@ -142,6 +166,7 @@ class Key:
     short_name: str | None
     dicom: Dicom | None
     value_type: str
+    vr: str
     multiplicity: Multiplicity
     identity: str
     identity_note: str | None
@@ -167,36 +192,57 @@ class Spec:
     version: Version
     status: str
     revisions: tuple[Revision, ...]
+    value_representations: tuple[ValueRepresentation, ...]
     value_types: tuple[Member, ...]
     identity_classes: tuple[Member, ...]
     keys: tuple[Key, ...]
 
 
 # --- Lexical forms ------------------------------------------------------------
-# Each value type's rule: the reason a text is not of that type, or None. A
-# value type the JSON defines without a rule here is refused, so a new type
-# cannot be published without its lexical form being checkable.
+# Each VR's rule, as I2S writes it (PS3.5 section 6.2, read 2026-11-24): the
+# reason a text is not a value of that VR, or None. A VR the JSON defines
+# without a rule here is refused, so its examples are always checkable. The
+# C++ codec (include/I2S_Attributes.hpp) implements the same rules at run time;
+# its tests read every VR's example through it.
 
-def _text_rule(text: str) -> str | None:
-    if not text:
-        return "it is empty"
-    if any(ord(c) < 0x20 or 0x7F <= ord(c) < 0xA0 for c in text):
-        return "it contains a control character"
+def _controls(allowed: str) -> Callable[[str], str | None]:
+    def rule(text: str) -> str | None:
+        if any((ord(c) < 0x20 or 0x7F <= ord(c) < 0xA0) and c not in allowed for c in text):
+            return "it contains a control character"
+        return None
+    return rule
+
+
+def _string_rule(text: str) -> str | None:
+    if "\\" in text:
+        return "it contains a backslash, which separates values"
+    return _controls("")(text)
+
+
+def _dt_rule(text: str) -> str | None:
+    match = _DT.fullmatch(text)
+    if match is None:
+        return "it is not YYYYMMDDHHMMSS, with up to six fractional digits, then a +ZZXX or -ZZXX offset"
+    if match.group(8) is None:
+        return "it has no UTC offset"
+    year, month, day, hour, minute, second = (int(match.group(i)) for i in range(1, 7))
+    try:
+        date(year, month, day)
+    except ValueError as error:
+        return f"it is not a calendar date ({error})"
+    if hour > 23 or minute > 59 or second > 59:
+        return "its time is not from 000000 to 235959"
+    offset = (1 if match.group(9) == "+" else -1) * (int(match.group(10)) * 60 + int(match.group(11)))
+    if int(match.group(11)) > 59 or not -12 * 60 <= offset <= 14 * 60:
+        return f"its UTC offset {match.group(8)} is outside -1200 to +1400"
     return None
 
 
-def _date_time_rule(text: str) -> str | None:
-    match = _DATE_TIME.fullmatch(text)
-    if match is None:
-        return "it is not YYYY-MM-DDThh:mm:ss, with up to six fractional digits, then Z or a ±hh:mm offset"
-    if match.group(2) is None:
-        return "it has no UTC offset"
-    try:
-        offset = datetime.fromisoformat(text).utcoffset()
-    except ValueError as error:
-        return f"it is not a calendar date and time ({error})"
-    if offset is None or not timedelta(hours=-12) <= offset <= timedelta(hours=14):
-        return f"its UTC offset {match.group(2)} is outside -12:00 to +14:00"
+def _is_rule(text: str) -> str | None:
+    if _IS.fullmatch(text) is None:
+        return "it is not a base-10 integer"
+    if not -(2**31) <= int(text) <= 2**31 - 1:
+        return "it is outside -2147483648 to 2147483647"
     return None
 
 
@@ -205,12 +251,21 @@ def _pattern_rule(pattern: re.Pattern[str], form: str) -> Callable[[str], str | 
 
 
 LEXICAL_RULES: dict[str, Callable[[str], str | None]] = {
-    "TEXT": _text_rule,
-    "DATE_TIME": _date_time_rule,
-    "DECIMAL": _pattern_rule(_DECIMAL, "a base-10 number"),
-    "INTEGER": _pattern_rule(_INTEGER, "a base-10 integer"),
-    BOOLEAN: _pattern_rule(re.compile("true|false"), "true or false"),
+    "CS": _pattern_rule(_CS, "upper-case letters, digits, spaces and underscores"),
+    "DS": _pattern_rule(_DS, "a base-10 number"),
+    "DT": _dt_rule,
+    "IS": _is_rule,
+    "LO": _string_rule,
+    "LT": _controls("\t\n\f\r"),
+    "SH": _string_rule,
+    "ST": _controls("\t\n\f\r"),
+    "UT": _controls("\t\n\f\r"),
 }
+
+
+def length(text: str, unit: str) -> int:
+    """A value's length in its VR's unit: UTF-8 bytes, or Unicode characters."""
+    return len(text.encode("utf-8")) if unit == "bytes" else len(text)
 
 
 # --- Readers ------------------------------------------------------------------
@@ -299,26 +354,53 @@ def _groups(doc: dict[str, Json], group: str, revisions: set[Version]) -> list[t
 
 
 def _members(doc: dict[str, Json], group: str, fields: tuple[str, ...],
-             revisions: set[Version]) -> tuple[Member, ...]:
+             revisions: set[Version], vrs: set[str]) -> tuple[Member, ...]:
     out: list[Member] = []
     for name, since, entry in _groups(doc, group, revisions):
         where = f"{group}.{name}"
         _match(_MEMBER_NAME, name, where, "an UPPER_SNAKE_CASE name")
         _only(entry, fields, where)
-        example = _text(entry, "example", where) if "example" in fields else None
-        out.append(Member(name, since, _text(entry, "description", where), example))
+        listed: tuple[str, ...] = ()
+        if "vrs" in fields:
+            raw = _field(entry, "vrs", where)
+            if not isinstance(raw, list) or not raw or not all(isinstance(v, str) for v in raw):
+                raise SpecError(f"{where}.vrs: expected a non-empty list of VR names, found {raw!r}")
+            listed = tuple(str(v) for v in raw)
+            for vr in listed:
+                if vr not in vrs:
+                    raise SpecError(f"{where}.vrs: {vr!r} is not a value representation of this specification")
+        out.append(Member(name, since, _text(entry, "description", where), listed))
     return tuple(out)
 
 
-def _check_examples(value_types: tuple[Member, ...]) -> None:
-    for member in value_types:
-        where = f"value_types.{member.name}.example"
-        rule = LEXICAL_RULES.get(member.name)
+def _value_representations(doc: dict[str, Json], revisions: set[Version]) -> tuple[ValueRepresentation, ...]:
+    out: list[ValueRepresentation] = []
+    for name, since, entry in _groups(doc, "value_representations", revisions):
+        where = f"value_representations.{name}"
+        if name not in DICOM_VRS:
+            raise SpecError(f"{where}: {name!r} is not a DICOM value representation (PS3.5 Table 6.2-1)")
+        _only(entry, VR_FIELDS, where)
+        max_length = _field(entry, "max_length", where)
+        if not isinstance(max_length, int) or isinstance(max_length, bool) or max_length < 1:
+            raise SpecError(f"{where}.max_length: expected a positive integer, found {max_length!r}")
+        unit = _text(entry, "length_unit", where)
+        if unit not in ("bytes", "characters"):
+            raise SpecError(f"{where}.length_unit: expected 'bytes' or 'characters', found {unit!r}")
+        multiple = _field(entry, "multiple_values", where)
+        if not isinstance(multiple, bool):
+            raise SpecError(f"{where}.multiple_values: expected true or false, found {multiple!r}")
+        example = _text(entry, "example", where)
+        rule = LEXICAL_RULES.get(name)
         if rule is None:
-            raise SpecError(f"value_types.{member.name}: no lexical rule for {member.name} in generator/model.py")
-        reason = rule(member.example or "")
+            raise SpecError(f"{where}: no lexical rule for {name} in generator/model.py")
+        reason = rule(example)
         if reason is not None:
-            raise SpecError(f"{where}: {member.example!r} is not a {member.name}: {reason}")
+            raise SpecError(f"{where}.example: {example!r} is not a {name}: {reason}")
+        if length(example, unit) > max_length:
+            raise SpecError(f"{where}.example: {length(example, unit)} {unit}, over {name}'s {max_length}")
+        out.append(ValueRepresentation(name, since, _text(entry, "description", where), max_length, unit,
+                                       multiple, example, _verified(_field(entry, "verified", where), f"{where}.verified")))
+    return tuple(out)
 
 
 def _verified(value: Json, where: str) -> tuple[Verified, ...]:
@@ -384,17 +466,39 @@ def _multiplicity(text: str, where: str) -> Multiplicity:
     return Multiplicity(minimum, maximum, text)
 
 
+def _or(names: tuple[str, ...]) -> str:
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " or " + names[-1]
+
+
 def _key(name: str, since: Version, entry: dict[str, Json],
-         value_types: set[str], identity_classes: set[str]) -> Key:
+         value_types: dict[str, Member], identity_classes: set[str],
+         vrs: dict[str, ValueRepresentation]) -> Key:
     where = f"keys.{name}"
     _match(_KEY_NAME, name, where, "a PascalCase name")
+    if name in RESERVED_NAMES:
+        raise SpecError(f"{where}: {name!r} is a name the generated C++ already uses")
     _only(entry, KEY_FIELDS, where)
     short_name = _optional_text(entry, "short_name", where)
     if short_name is not None:
         _match(_SHORT_NAME, short_name, f"{where}.short_name", "a short name of letters, digits and underscores")
+        if short_name in RESERVED_NAMES:
+            raise SpecError(f"{where}.short_name: {short_name!r} is a name the generated C++ already uses")
     value_type = _text(entry, "value_type", where)
     if value_type not in value_types:
         raise SpecError(f"{where}.value_type: unknown value type {value_type!r}")
+    vr = _text(entry, "vr", where)
+    allowed = value_types[value_type].vrs
+    if vr not in allowed:
+        raise SpecError(f"{where}.vr: {value_type} is written as {_or(allowed)}, not {vr}")
+    dicom = _dicom(_field(entry, "dicom", where), f"{where}.dicom")
+    if dicom is not None and dicom.vr != vr:
+        raise SpecError(f"{where}.vr: {vr} differs from the DICOM attribute's {dicom.vr}")
+    multiplicity = _multiplicity(_text(entry, "multiplicity", where), f"{where}.multiplicity")
+    if multiplicity.maximum != 1:
+        if not vrs[vr].multiple_values:
+            raise SpecError(f"{where}.multiplicity: {vr} holds a single value, so {multiplicity.text!r} is not possible")
+        if value_type != TEXT:
+            raise SpecError(f"{where}.multiplicity: only {TEXT} keys may hold several values in this version")
     identity = _text(entry, "identity", where)
     if identity not in identity_classes:
         raise SpecError(f"{where}.identity: unknown identity class {identity!r}")
@@ -405,9 +509,10 @@ def _key(name: str, since: Version, entry: dict[str, Json],
         name=name,
         since=since,
         short_name=short_name,
-        dicom=_dicom(_field(entry, "dicom", where), f"{where}.dicom"),
+        dicom=dicom,
         value_type=value_type,
-        multiplicity=_multiplicity(_text(entry, "multiplicity", where), f"{where}.multiplicity"),
+        vr=vr,
+        multiplicity=multiplicity,
         identity=identity,
         identity_note=identity_note,
         phi_flag=_phi_flag(_field(entry, "phi_flag", where), f"{where}.phi_flag"),
@@ -464,14 +569,16 @@ def _parse_header(header_doc: Json) -> tuple[dict[str, Json], Version, str, tupl
     return header, version, status, revisions
 
 
-def _parse_keys(keys_doc: Json, revisions: set[Version]) -> tuple[tuple[Member, ...], tuple[Member, ...], tuple[Key, ...]]:
+def _parse_keys(keys_doc: Json, revisions: set[Version]) -> tuple[
+        tuple[ValueRepresentation, ...], tuple[Member, ...], tuple[Member, ...], tuple[Key, ...]]:
     doc = _object(keys_doc, "keys document")
     _only(doc, KEYS_DOCUMENT_FIELDS, "keys document")
-    value_types = _members(doc, "value_types", VALUE_TYPE_FIELDS, revisions)
-    _check_examples(value_types)
-    identity_classes = _members(doc, "identity_classes", IDENTITY_CLASS_FIELDS, revisions)
+    vrs = _value_representations(doc, revisions)
+    by_vr = {v.name: v for v in vrs}
+    value_types = _members(doc, "value_types", VALUE_TYPE_FIELDS, revisions, set(by_vr))
+    identity_classes = _members(doc, "identity_classes", IDENTITY_CLASS_FIELDS, revisions, set())
     keys = tuple(
-        _key(name, since, entry, {m.name for m in value_types}, {m.name for m in identity_classes})
+        _key(name, since, entry, {m.name: m for m in value_types}, {m.name for m in identity_classes}, by_vr)
         for name, since, entry in _groups(doc, "keys", revisions)
     )
     by_name = {k.name: k for k in keys}
@@ -495,7 +602,7 @@ def _parse_keys(keys_doc: Json, revisions: set[Version]) -> tuple[tuple[Member, 
                 f"is already the name or short name of {owners[key.short_name]}"
             )
         owners[key.short_name] = key.name
-    return value_types, identity_classes, keys
+    return vrs, value_types, identity_classes, keys
 
 
 def parse(header_doc: Json, keys_doc: Json) -> Spec:
@@ -505,7 +612,7 @@ def parse(header_doc: Json, keys_doc: Json) -> Spec:
     except SpecError as error:
         raise SpecError(f"{HEADER_FILE}: {error}") from error
     try:
-        value_types, identity_classes, keys = _parse_keys(keys_doc, {r.version for r in revisions})
+        vrs, value_types, identity_classes, keys = _parse_keys(keys_doc, {r.version for r in revisions})
     except SpecError as error:
         raise SpecError(f"{KEYS_FILE}: {error}") from error
     try:
@@ -514,4 +621,4 @@ def parse(header_doc: Json, keys_doc: Json) -> Spec:
         repository = _text(header, "repository", "header")
     except SpecError as error:
         raise SpecError(f"{HEADER_FILE}: {error}") from error
-    return Spec(name, abbreviation, repository, version, status, revisions, value_types, identity_classes, keys)
+    return Spec(name, abbreviation, repository, version, status, revisions, vrs, value_types, identity_classes, keys)

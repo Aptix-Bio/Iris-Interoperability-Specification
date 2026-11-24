@@ -103,6 +103,19 @@ def _key_entry(entry: Json) -> dict[str, Json]:
     return out
 
 
+def _member(section: str, entry: Json) -> dict[str, Json]:
+    if section == "keys":
+        return _key_entry(entry)
+    if section == "value_representations":
+        out = _ordered(entry, model.VR_FIELDS)
+        verified = out["verified"]
+        assert isinstance(verified, list)
+        out["verified"] = [_ordered(v, model.VERIFIED_FIELDS) for v in verified]
+        return out
+    fields = model.VALUE_TYPE_FIELDS if section == "value_types" else model.IDENTITY_CLASS_FIELDS
+    return _ordered(entry, fields)
+
+
 def canonical(file: str, doc: Json) -> str:
     """The canonical text of a spec document that model.parse accepted."""
     assert isinstance(doc, dict)
@@ -113,7 +126,6 @@ def canonical(file: str, doc: Json) -> str:
         assert isinstance(revisions, list)
         out["revisions"] = [_ordered(r, model.REVISION_FIELDS) for r in revisions]
     else:
-        member_fields = {"value_types": model.VALUE_TYPE_FIELDS, "identity_classes": model.IDENTITY_CLASS_FIELDS}
         for section in model.KEYS_DOCUMENT_FIELDS:
             ordered = _ordered(doc[section], model.SECTION_FIELDS)
             versions = ordered["i2s_version"]
@@ -122,10 +134,7 @@ def canonical(file: str, doc: Json) -> str:
             for label in sorted(versions, key=_version_key):
                 members = versions[label]
                 assert isinstance(members, dict)
-                groups[label] = {
-                    name: _key_entry(entry) if section == "keys" else _ordered(entry, member_fields[section])
-                    for name, entry in members.items()
-                }
+                groups[label] = {name: _member(section, entry) for name, entry in members.items()}
             ordered["i2s_version"] = groups
             out[section] = ordered
     return json.dumps(out, indent=2, ensure_ascii=False) + "\n"

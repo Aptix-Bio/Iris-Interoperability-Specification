@@ -9,6 +9,8 @@ include::{generated}/value_types.adoc[]
 
 include::{generated}/identity_classes.adoc[]
 
+include::{generated}/value_representations.adoc[]
+
 include::{generated}/keys_table.adoc[]
 
 include::{generated}/key_sections.adoc[]

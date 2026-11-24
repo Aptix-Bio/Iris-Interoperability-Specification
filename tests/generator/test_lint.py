@@ -163,18 +163,24 @@ def test_verified_without_url_is_refused() -> None:
 # --- Times ------------------------------------------------------------------
 
 def test_date_time_without_offset_is_refused() -> None:
-    _refused(*_edited_keys(lambda k: _member(k, "value_types", "DATE_TIME").__setitem__("example", "2026-11-24T10:30:00")),
-             f"{KEYS}: value_types.DATE_TIME.example: '2026-11-24T10:30:00' is not a DATE_TIME: it has no UTC offset")
+    # A DATE_TIME is DICOM's DT, and I2S requires DT's optional UTC offset.
+    _refused(*_edited_keys(lambda k: _member(k, "value_representations", "DT").__setitem__("example", "20261124103000")),
+             f"{KEYS}: value_representations.DT.example: '20261124103000' is not a DT: it has no UTC offset")
 
 
 def test_date_time_not_a_calendar_time_is_refused() -> None:
-    _refused(*_edited_keys(lambda k: _member(k, "value_types", "DATE_TIME").__setitem__("example", "2026-02-30T10:30:00Z")),
-             f"{KEYS}: value_types.DATE_TIME.example: '2026-02-30T10:30:00Z' is not a DATE_TIME")
+    _refused(*_edited_keys(lambda k: _member(k, "value_representations", "DT").__setitem__("example", "20260230103000+0000")),
+             f"{KEYS}: value_representations.DT.example: '20260230103000+0000' is not a DT")
 
 
-def test_example_of_another_type_is_checked() -> None:
-    _refused(*_edited_keys(lambda k: _member(k, "value_types", "BOOLEAN").__setitem__("example", "True")),
-             f"{KEYS}: value_types.BOOLEAN.example: 'True' is not a BOOLEAN")
+def test_date_time_offset_out_of_range_is_refused() -> None:
+    _refused(*_edited_keys(lambda k: _member(k, "value_representations", "DT").__setitem__("example", "20261124103000+1500")),
+             f"{KEYS}: value_representations.DT.example: '20261124103000+1500' is not a DT: its UTC offset +1500 is outside -1200 to +1400")
+
+
+def test_example_of_another_vr_is_checked() -> None:
+    _refused(*_edited_keys(lambda k: _member(k, "value_representations", "CS").__setitem__("example", "yes")),
+             f"{KEYS}: value_representations.CS.example: 'yes' is not a CS")
 
 
 def test_revision_date_not_iso_is_refused() -> None:

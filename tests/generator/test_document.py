@@ -11,7 +11,7 @@ from generator.witness import witness_hash
 
 ROOT = Path(__file__).resolve().parents[2]
 GENERATED = {"attributes.adoc", "revision_history.adoc", "value_types.adoc",
-             "identity_classes.adoc", "keys_table.adoc", "key_sections.adoc"}
+             "identity_classes.adoc", "value_representations.adoc", "keys_table.adoc", "key_sections.adoc"}
 
 
 def _generate(tmp_path: Path) -> Path:

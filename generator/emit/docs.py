@@ -9,6 +9,7 @@ an implementation compiles against. Emitted into generated_docs/:
     revision_history.adoc  one entry per revision
     value_types.adoc       the value types, with their examples
     identity_classes.adoc  the identity classes
+    value_representations.adoc  the DICOM VRs a value is written as, an example each
     keys_table.adoc        every key, one row each
     key_sections.adoc      one section per key
 
@@ -19,7 +20,7 @@ block comment would end the document header.
 # RTM Document_02
 from __future__ import annotations
 
-from ..model import Key, Member, Spec
+from ..model import Key, Member, Spec, ValueRepresentation
 
 def _banner(digest: str) -> list[str]:
     return [
@@ -72,23 +73,36 @@ def _revision_history(spec: Spec, digest: str) -> str:
 
 
 def _members(title: str, members: tuple[Member, ...], digest: str) -> str:
-    examples = any(m.example is not None for m in members)
+    vrs = any(m.vrs for m in members)
     lines = _banner(digest) + [f".{title}"]
-    lines += ['[cols="1,1,2,4",options="header"]' if examples else '[cols="1,1,6",options="header"]', "|==="]
-    lines += ["|Name |Since |Example |Meaning" if examples else "|Name |Since |Meaning", ""]
+    lines += ['[cols="1,1,2,5",options="header"]' if vrs else '[cols="1,1,6",options="header"]', "|==="]
+    lines += ["|Name |Since |Written as |Meaning" if vrs else "|Name |Since |Meaning", ""]
     for m in members:
-        example = f"|`{_cell(m.example)}` " if m.example is not None else ""
-        lines.append(f"|`{m.name}` |{m.since} {example}|{_cell(m.description)}")
+        written = f"|{', '.join(m.vrs)} " if vrs else ""
+        lines.append(f"|`{m.name}` |{m.since} {written}|{_cell(m.description)}")
+    return "\n".join(lines + ["|==="]) + "\n"
+
+
+def _limit(vr: ValueRepresentation) -> str:
+    return f"{vr.max_length:,} {vr.length_unit}".replace(",", " ")
+
+
+def _value_representations(spec: Spec, digest: str) -> str:
+    lines = _banner(digest) + [".Value representations, one example each", '[cols="1,2,1,2,5",options="header"]', "|===",
+                               "|VR |Limit |Several values |Example |Form", ""]
+    for vr in spec.value_representations:
+        lines.append(f"|`{vr.name}` |{_limit(vr)} |{'yes, joined by `\\`' if vr.multiple_values else 'no'} "
+                     f"|`+{vr.example}+` |{_cell(vr.description)}")
     return "\n".join(lines + ["|==="]) + "\n"
 
 
 def _keys_table(spec: Spec, digest: str) -> str:
-    lines = _banner(digest) + [".Keys", '[cols="3,2,3,2,1,2,1",options="header"]', "|===",
-                               "|Key |Short name |DICOM |Value type |Multiplicity |Identity |Since", ""]
+    lines = _banner(digest) + [".Keys", '[cols="3,2,3,2,1,1,2,1",options="header"]', "|===",
+                               "|Key |Short name |DICOM |Value type |VR |Multiplicity |Identity |Since", ""]
     for k in spec.keys:
         lines.append(
             f"|<<{anchor(k)},`{k.name}`>> |{f'`{k.short_name}`' if k.short_name else ''} |{_dicom(k)} "
-            f"|`{k.value_type}` |{k.multiplicity.text} |`{k.identity}` |{k.since}"
+            f"|`{k.value_type}` |`{k.vr}` |{k.multiplicity.text} |`{k.identity}` |{k.since}"
         )
     return "\n".join(lines + ["|==="]) + "\n"
 
@@ -102,7 +116,7 @@ def _key_sections(spec: Spec, digest: str) -> str:
         lines += [k.description, ""]
         lines += [f"Short name:: {f'`{k.short_name}`' if k.short_name else 'none'}"]
         lines += [f"DICOM:: {_dicom(k)}"]
-        lines += [f"Value type:: `{k.value_type}`, multiplicity {k.multiplicity.text}"]
+        lines += [f"Value type:: `{k.value_type}`, written as the DICOM VR `{k.vr}`, multiplicity {k.multiplicity.text}"]
         lines += [f"Identity class:: `{k.identity}`"]
         if k.identity_note is not None:
             lines += [f"Identity note:: {k.identity_note}"]
@@ -126,6 +140,7 @@ def emit_documents(spec: Spec, digest: str) -> dict[str, str]:
         "revision_history.adoc": _revision_history(spec, digest),
         "value_types.adoc": _members("Value types", spec.value_types, digest),
         "identity_classes.adoc": _members("Identity classes", spec.identity_classes, digest),
+        "value_representations.adoc": _value_representations(spec, digest),
         "keys_table.adoc": _keys_table(spec, digest),
         "key_sections.adoc": _key_sections(spec, digest),
     }

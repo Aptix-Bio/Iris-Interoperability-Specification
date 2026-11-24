@@ -58,8 +58,14 @@ def test_retyped_key_is_rejected() -> None:
     entry = _keys_01(edited)["Manufacturer"]
     assert isinstance(entry, dict)
     entry["value_type"] = "INTEGER"
+    entry["vr"] = "IS"
+    entry["dicom"] = None
     problems, _ = _gate(header, edited, baseline)
-    assert problems == ['CHANGED keys.Manufacturer.value_type: "TEXT" -> "INTEGER"']
+    assert problems == [
+        'CHANGED keys.Manufacturer.dicom: {"keyword": "Manufacturer", "sequence": null, "tag": "(0008,0070)", "vr": "LO"} -> null',
+        'CHANGED keys.Manufacturer.value_type: "TEXT" -> "INTEGER"',
+        'CHANGED keys.Manufacturer.vr: "LO" -> "IS"',
+    ]
 
 
 def test_added_key_passes_as_a_note() -> None:

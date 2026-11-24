@@ -40,12 +40,13 @@ has to mean the same thing forever. Read `README.md`, this page and
 `summary`. The header's version is the newest revision; revisions follow one
 another without a gap or repeat, and only the newest may be a draft. Every
 version group in `spec/i2s_keys.json` is a revision. `spec/i2s_keys.json` holds
-three sections, each grouped by the version that introduced its members
+four sections, each grouped by the version that introduced its members
 (`i2s_version` → `"0.1"` → members), as IFE's `spec/*.json` are:
 
 | Section | Member fields |
 |---|---|
-| `value_types` | `description`: the lexical form of a value; `example`: a value checked against that form by the rule `generator/model.py` holds for the type (a type without a rule is refused) |
+| `value_representations` | a DICOM VR (PS3.5 section 6.2) as I2S writes one value: `description`, `max_length`, `length_unit` (`bytes` or `characters`), `multiple_values` (whether values may be joined by the backslash), `example` (checked by the VR's rule in `generator/model.py`, and read through the C++ codec by a test; a VR without a rule is refused), `verified` |
+| `value_types` | `description`: what a value is; `vrs`: the VRs it may be written as |
 | `identity_classes` | `description`: whether a value can identify an individual |
 | `keys` | the fields below, every one present, `null` where it does not apply |
 
@@ -55,7 +56,8 @@ three sections, each grouped by the version that introduced its members
 | `short_name` | a shorter name the maintainer gave the key (`DII`), or `null`; `I2S::key_from_name` accepts it too, so names and short names share one namespace |
 | `dicom` | the DICOM attribute the key corresponds to (`keyword`, `tag` as `GGGG,EEEE`, `vr`, one of DICOM's value representations (PS3.5 Table 6.2-1), the `sequence` whose items carry it or `null`, and `verified`: a list of the sources the mapping was checked against, each a `title`, an https `url` and the ISO 8601 date it was `read`), or `null` where I2S diverges from DICOM |
 | `value_type` | a member of `value_types` |
-| `multiplicity` | how many values: `1`, `1-3`, or `1-n` for no upper bound |
+| `vr` | the VR the value is written as: one of its value type's `vrs`, and the DICOM attribute's VR where the key has one |
+| `multiplicity` | how many values: `1`, `1-3`, or `1-n` for no upper bound; more than one only for a `TEXT` key whose VR allows several values |
 | `identity` | a member of `identity_classes` |
 | `identity_note` | the open question, present exactly when `identity` is `UNDER_REVIEW` |
 | `phi_flag` | the `BOOLEAN` key that states per file whether this key's value is protected health information, with `absent_means_phi`: what a reader and a de-identifier assume when the flag is absent; or `null` |

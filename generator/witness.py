@@ -34,6 +34,7 @@ def witness(spec: Spec) -> dict[str, Json]:
             "short_name": key.short_name,
             "dicom": dicom,
             "value_type": key.value_type,
+            "vr": key.vr,
             "multiplicity": key.multiplicity.text,
             "identity": key.identity,
             "deprecated": key.deprecated is not None,
@@ -41,6 +42,11 @@ def witness(spec: Spec) -> dict[str, Json]:
                 "key": key.phi_flag.key, "absent_means_phi": key.phi_flag.absent_means_phi},
         }
     return {
+        "value_representations": {
+            v.name: {"since": str(v.since), "max_length": v.max_length, "length_unit": v.length_unit,
+                     "multiple_values": v.multiple_values}
+            for v in spec.value_representations
+        },
         "value_types": {m.name: str(m.since) for m in spec.value_types},
         "identity_classes": {m.name: str(m.since) for m in spec.identity_classes},
         "keys": keys,
