@@ -18,3 +18,7 @@ generated_source/*
 !generated_source/README.md
 generated_docs/*
 !generated_docs/README.md
+
+# Bundler's local settings and installed gems, when installed into the tree.
+/.bundle/
+/vendor/

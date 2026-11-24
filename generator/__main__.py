@@ -1,4 +1,4 @@
-"""Command line: python -m generator [--validate | --check | --refresh-witness].
+"""Command line: python -m generator [--validate | --check | --fix | --refresh-witness].
 
 CMakeLists.txt runs `python -m generator -d <root>` at configure time; change
 the flags here and there in the same commit.
@@ -28,6 +28,8 @@ def main(argv: list[str] | None = None) -> int:
                       help="check the spec and the append-only gate; write nothing")
     mode.add_argument("--check", action="store_const", const=pipeline.Mode.CHECK, dest="mode",
                       help="fail on a stale witness or a generated file not produced from the current spec")
+    mode.add_argument("--fix", action="store_const", const=pipeline.Mode.FIX, dest="mode",
+                      help="rewrite the spec files in canonical form, then validate")
     mode.add_argument("--refresh-witness", action="store_const", const=pipeline.Mode.REFRESH_WITNESS,
                       dest="mode", help="record the spec's additions in tests/witness/witness.json")
     args = parser.parse_args(argv)

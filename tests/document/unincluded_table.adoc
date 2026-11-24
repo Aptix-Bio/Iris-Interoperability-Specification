@@ -1,0 +1,12 @@
+= A narrative that never includes the key sections
+include::{generated}/attributes.adoc[]
+
+== Tables
+
+include::{generated}/revision_history.adoc[]
+
+include::{generated}/value_types.adoc[]
+
+include::{generated}/identity_classes.adoc[]
+
+include::{generated}/keys_table.adoc[]

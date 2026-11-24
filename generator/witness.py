@@ -1,7 +1,8 @@
 """The witness: every fact of the specification a consumer depends on.
 
 A key's name, version, short name, DICOM counterpart, value type, multiplicity,
-identity class and PHI flag (with its absent default) are what a writer puts in a file and a reader looks up, so
+identity class, PHI flag (with its absent default) and whether it is
+deprecated are what a writer puts in a file and a reader looks up, so
 each is witnessed. Descriptions, notes and verification sources are not: they
 may be clarified without changing what any file means.
 
@@ -35,6 +36,7 @@ def witness(spec: Spec) -> dict[str, Json]:
             "value_type": key.value_type,
             "multiplicity": key.multiplicity.text,
             "identity": key.identity,
+            "deprecated": key.deprecated is not None,
             "phi_flag": None if key.phi_flag is None else {
                 "key": key.phi_flag.key, "absent_means_phi": key.phi_flag.absent_means_phi},
         }
@@ -45,10 +47,10 @@ def witness(spec: Spec) -> dict[str, Json]:
     }
 
 
-def canonical(facts: Json) -> str:
+def witness_text(facts: Json) -> str:
     """The one text form of a witness: the committed file and the hash use it."""
     return json.dumps(facts, indent=2, sort_keys=True) + "\n"
 
 
 def witness_hash(spec: Spec) -> str:
-    return hashlib.sha256(canonical(witness(spec)).encode("utf-8")).hexdigest()
+    return hashlib.sha256(witness_text(witness(spec)).encode("utf-8")).hexdigest()

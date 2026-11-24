@@ -31,6 +31,18 @@ add_library(I2S::i2s ALIAS i2s)
 target_include_directories(i2s INTERFACE "$<BUILD_INTERFACE:${I2S_GENERATED_DIR}>")
 target_compile_features(i2s INTERFACE cxx_std_20)
 
+# RTM Document_02
+# The specification document, HTML and PDF, into <build>/doc. Not part of
+# `all`: it needs Ruby and the Gemfile's Asciidoctor, and the gates run it as
+# their last test.
+if(PROJECT_IS_TOP_LEVEL)
+    add_custom_target(i2s_document
+        COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUT=${CMAKE_BINARY_DIR}/doc
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/render_document.cmake"
+        COMMENT "Rendering the I2S specification into ${CMAKE_BINARY_DIR}/doc"
+        VERBATIM)
+endif()
+
 if(I2S_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)

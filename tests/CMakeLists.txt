@@ -18,8 +18,7 @@ add_executable(i2s_keys_tests cpp/keys_tests.cpp)
 target_link_libraries(i2s_keys_tests PRIVATE I2S::i2s Catch2::Catch2WithMain)
 target_compile_options(i2s_keys_tests PRIVATE
     $<IF:$<CXX_COMPILER_ID:MSVC>,/W4 /WX,-Wall -Wextra -Wpedantic -Werror>)
-include("${catch2_SOURCE_DIR}/extras/Catch.cmake")
-catch_discover_tests(i2s_keys_tests)
+add_test(NAME i2s_keys_tests COMMAND i2s_keys_tests)
 
 # RTM Generated_04
 # A key renamed in the JSON must break every use of its old name at compile
@@ -31,3 +30,42 @@ add_test(NAME i2s_renamed_key_fails_to_compile
     COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --target i2s_renamed_key --config $<CONFIG>)
 set_tests_properties(i2s_renamed_key_fails_to_compile PROPERTIES
     PASS_REGULAR_EXPRESSION "error[^\n]*DigitalSlideIdentifier")
+
+# RTM Gates_01
+# The gates, in the order they run: the linter, the generator check, the tests,
+# the document render. `cmake --workflow --preset gates` configures, builds and
+# runs them; DEPENDS fixes the order whatever ctest's cost data says. The
+# Python checks run through uv in the project's locked environment.
+find_program(I2S_UV uv REQUIRED)
+set(I2S_PYTHON "${I2S_UV}" run --locked --project "${PROJECT_SOURCE_DIR}")
+add_test(NAME i2s_lint COMMAND ${I2S_PYTHON} python -m generator -d "${PROJECT_SOURCE_DIR}" --validate
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+add_test(NAME i2s_generator_check COMMAND ${I2S_PYTHON} python -m generator -d "${PROJECT_SOURCE_DIR}" --check
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+add_test(NAME i2s_pytest COMMAND ${I2S_PYTHON} pytest WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+add_test(NAME i2s_mypy COMMAND ${I2S_PYTHON} mypy WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+
+# RTM Document_02
+# Each broken narrative must fail the render with the guard's own message:
+# Asciidoctor by itself exits 0 on all three.
+set(guard_printed_include "render_document\\[unprocessed-include\\]")
+set(guard_missing_include "render_document\\[asciidoctor-failed\\]")
+set(guard_unincluded_table "render_document\\[unincluded-file\\]")
+foreach(narrative printed_include missing_include unincluded_table)
+    add_test(NAME i2s_document_refuses_${narrative}
+        COMMAND "${CMAKE_COMMAND}" -DROOT=${PROJECT_SOURCE_DIR} -DOUT=${CMAKE_CURRENT_BINARY_DIR}/doc_${narrative}
+                -DNARRATIVE=${CMAKE_CURRENT_SOURCE_DIR}/document/${narrative}.adoc
+                -P "${PROJECT_SOURCE_DIR}/cmake/render_document.cmake")
+    set_tests_properties(i2s_document_refuses_${narrative} PROPERTIES
+        PASS_REGULAR_EXPRESSION "${guard_${narrative}}")
+endforeach()
+add_test(NAME i2s_document COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --target i2s_document)
+
+set_tests_properties(i2s_generator_check PROPERTIES DEPENDS i2s_lint)
+set_tests_properties(i2s_pytest i2s_mypy i2s_keys_tests i2s_renamed_key_fails_to_compile
+    PROPERTIES DEPENDS i2s_generator_check)
+set_tests_properties(i2s_document_refuses_printed_include i2s_document_refuses_missing_include
+    i2s_document_refuses_unincluded_table
+    PROPERTIES DEPENDS "i2s_pytest;i2s_mypy;i2s_keys_tests;i2s_renamed_key_fails_to_compile")
+set_tests_properties(i2s_document PROPERTIES DEPENDS
+    "i2s_document_refuses_printed_include;i2s_document_refuses_missing_include;i2s_document_refuses_unincluded_table")

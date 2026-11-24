@@ -5,19 +5,24 @@
     "i2s_version": {
       "0.1": {
         "TEXT": {
-          "description": "UTF-8 text with no control characters. Corresponds to DICOM's character string value representations (LO, SH, UT)."
+          "description": "UTF-8 text with no control characters. Corresponds to DICOM's character string value representations (LO, SH, UT).",
+          "example": "GT 450"
         },
         "DATE_TIME": {
-          "description": "A date and time in ISO 8601 extended format with a UTC offset, for example 2026-11-24T10:30:00-05:00."
+          "description": "A date and time in ISO 8601 extended format, YYYY-MM-DDThh:mm:ss, to the second, with an optional decimal fraction of one to six digits (to the microsecond), followed by a required UTC offset: Z, or +hh:mm or -hh:mm between -12:00 and +14:00. The date runs from 0001-01-01 to 9999-12-31 and must be a calendar date. A time without an offset is refused.",
+          "example": "2026-11-24T10:30:00-05:00"
         },
         "DECIMAL": {
-          "description": "A base-10 number with an optional sign, fraction and exponent, for example -0.25 or 2.5E-4."
+          "description": "A base-10 number with an optional sign, fraction and exponent, for example -0.25 or 2.5E-4.",
+          "example": "2.5E-4"
         },
         "INTEGER": {
-          "description": "A base-10 integer with an optional sign, for example 40."
+          "description": "A base-10 integer with an optional sign, for example 40.",
+          "example": "40"
         },
         "BOOLEAN": {
-          "description": "The text true or the text false, in lower case."
+          "description": "The text true or the text false, in lower case.",
+          "example": "true"
         }
       }
     }
@@ -73,7 +78,18 @@
             "tag": "0008,0070",
             "vr": "LO",
             "sequence": null,
-            "verified": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html (PS3.6 2026e) and https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.2.html (PS3.3 2026e), read 2026-11-24"
+            "verified": [
+              {
+                "title": "DICOM PS3.6 2026e, Data Dictionary",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html",
+                "read": "2026-11-24"
+              },
+              {
+                "title": "DICOM PS3.3 2026e, C.7.5.2 Enhanced General Equipment Module",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.2.html",
+                "read": "2026-11-24"
+              }
+            ]
           },
           "value_type": "TEXT",
           "multiplicity": "1",
@@ -90,7 +106,18 @@
             "tag": "0008,1090",
             "vr": "LO",
             "sequence": null,
-            "verified": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html (PS3.6 2026e) and https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.2.html (PS3.3 2026e), read 2026-11-24"
+            "verified": [
+              {
+                "title": "DICOM PS3.6 2026e, Data Dictionary",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html",
+                "read": "2026-11-24"
+              },
+              {
+                "title": "DICOM PS3.3 2026e, C.7.5.2 Enhanced General Equipment Module",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.2.html",
+                "read": "2026-11-24"
+              }
+            ]
           },
           "value_type": "TEXT",
           "multiplicity": "1",
@@ -107,7 +134,18 @@
             "tag": "0018,1000",
             "vr": "LO",
             "sequence": null,
-            "verified": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html (PS3.6 2026e) and https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.2.html (PS3.3 2026e), read 2026-11-24"
+            "verified": [
+              {
+                "title": "DICOM PS3.6 2026e, Data Dictionary",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html",
+                "read": "2026-11-24"
+              },
+              {
+                "title": "DICOM PS3.3 2026e, C.7.5.2 Enhanced General Equipment Module",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.2.html",
+                "read": "2026-11-24"
+              }
+            ]
           },
           "value_type": "TEXT",
           "multiplicity": "1",
@@ -124,7 +162,18 @@
             "tag": "0018,1020",
             "vr": "LO",
             "sequence": null,
-            "verified": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html (PS3.6 2026e) and https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.2.html (PS3.3 2026e), read 2026-11-24"
+            "verified": [
+              {
+                "title": "DICOM PS3.6 2026e, Data Dictionary",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html",
+                "read": "2026-11-24"
+              },
+              {
+                "title": "DICOM PS3.3 2026e, C.7.5.2 Enhanced General Equipment Module",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.2.html",
+                "read": "2026-11-24"
+              }
+            ]
           },
           "value_type": "TEXT",
           "multiplicity": "1-n",
@@ -144,7 +193,23 @@
               "keyword": "UDISequence",
               "tag": "0018,100A"
             },
-            "verified": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html (PS3.6 2026e), https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.html (General Equipment Module, PS3.3 2026e) and https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_10.29.html (UDI Macro, PS3.3 2026e), read 2026-11-24"
+            "verified": [
+              {
+                "title": "DICOM PS3.6 2026e, Data Dictionary",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/html/part06.html",
+                "read": "2026-11-24"
+              },
+              {
+                "title": "DICOM PS3.3 2026e, C.7.5.1 General Equipment Module",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.5.html",
+                "read": "2026-11-24"
+              },
+              {
+                "title": "DICOM PS3.3 2026e, 10.29 UDI Macro",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_10.29.html",
+                "read": "2026-11-24"
+              }
+            ]
           },
           "value_type": "TEXT",
           "multiplicity": "1-n",

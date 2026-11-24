@@ -26,21 +26,23 @@ it are the checkable implementation, red first. Requirements live in
 ```mermaid
 flowchart LR
     S1["SpecScaffold_1"] --> S2["SpecLintAndDocument_2"]
-    S2 --> S3["VocabularyFromScanners_3"]
-    S2 --> S4["IdentityClasses_4"]
-    S3 --> S5["IfeAndIrisSlideAdoption_5"]
-    S4 --> S5
-    S5 --> S6["Release_6"]
+    S2 --> S3["TypedAttributes_3"]
+    S3 --> S4["VocabularyFromScanners_4"]
+    S3 --> S5["IdentityClasses_5"]
+    S4 --> S6["IfeAndIrisSlideAdoption_6"]
+    S5 --> S6
+    S6 --> S7["Release_7"]
 ```
 
 | Sprint | Milestone (what is shown working) | Status |
 |---|---|---|
 | SpecScaffold_1 | `ctest` green on a header generated from `spec/*.json`; the generator refuses a removed key, a retyped key and a duplicate name | `doing` (PR #1 open) |
 | SpecLintAndDocument_2 | `cmake --workflow --preset gates` runs the linter, the generator check, the tests and the AsciiDoc render, locally and on CI, and CI publishes the HTML and PDF | `doing` |
-| VocabularyFromScanners_3 | the keys every scanner family writes at scan time (stain, scan date and time, optics, resolution) generated and tested, each DICOM mapping verified | `todo` |
-| IdentityClasses_4 | every key's identity class decided by the maintainer; no key left `UNDER_REVIEW` that a release depends on | `blocked` on the maintainer's answers (Open questions) |
-| IfeAndIrisSlideAdoption_5 | IFE's `METADATA_I2S` text points to I2S; Iris-Slide refuses an attribute key the generated header does not define | `todo` |
-| Release_6 | a licence chosen, version 1.0 ratified, the repository public | `blocked` on the licence |
+| TypedAttributes_3 | a vendor's C++ writes `attributes[I2S::ScanTime] = std::chrono::system_clock::now();` with completion and compile-time type checking; every value encoded as its DICOM VR; `I2S::Attributes` iterates, and adapts to and from IFE's attribute pairs | `todo` |
+| VocabularyFromScanners_4 | the keys every scanner family writes at scan time (stain, scan date and time, optics, resolution) generated and tested, each DICOM mapping verified | `todo` |
+| IdentityClasses_5 | every key's identity class decided by the maintainer; no key left `UNDER_REVIEW` that a release depends on | `blocked` on the maintainer's answers (Open questions) |
+| IfeAndIrisSlideAdoption_6 | IFE's `METADATA_I2S` text points to I2S; Iris-Slide refuses an attribute key the generated header does not define | `todo` |
+| Release_7 | a licence chosen, version 1.0 ratified, the repository public | `blocked` on the licence |
 
 ## SpecScaffold_1 — the specification compiles into C++ `doing`
 
@@ -140,32 +142,130 @@ the HTML and PDF. Branch `feature/SpecLintAndDocument_2`, pull request based on
   `development/` and the workflow; pull request #1's body rewritten [Process_01]
   - [x] `grep -rni ryan` over the public files finds only the author line in
     `spec/i2s_header.json`
-- [ ] **CanonicalFormat_2.3** — `--validate` fails on a spec file that is not
-  in canonical form; `--fix` rewrites it [Lint_01]
-- [ ] **NameRules_2.4** — PascalCase key names, unique short names, ASCII
-  names [Lint_02]
-- [ ] **DicomRules_2.5** — tags `GGGG,EEEE`, VRs from DICOM's list,
-  `verified` entries with a URL and an ISO date [Lint_03]
-- [ ] **TimeRules_2.6** — every date and time ISO 8601; a DATE_TIME carries a
-  UTC offset, its range and precision stated [Lint_04]
-- [ ] **VersionRules_2.7** — the header version is the newest revision;
-  revisions in order with no gap or repeat; every version group is a revision;
-  nothing added under an older version [Lint_05]
-- [ ] **NothingDropped_2.8** — the gate's missing cases: a key moved between
+- [x] **CanonicalFormat_2.3** — `--validate` fails on a spec file that is not
+  in canonical form, naming the file and the first differing line; `--fix`
+  rewrites it (schema field order, two-space indent, trailing newline) [Lint_01]
+  - [x] Red: `--validate` returned 0 on a re-indented file, one without its
+    trailing newline, and one with fields out of schema order (`assert 0 == 1`)
+  - [x] Green: `test_lint.py` format tests pass; `--fix` restores the
+    committed text byte for byte
+- [x] **NameRules_2.4** — PascalCase key names, unique short names, ASCII
+  names; every failure now names its file [Lint_02]
+  - [x] Red: the rules existed since 09cc501, but their messages named no
+    file: `keys.manufacturer_name: 'manufacturer_name' is not a PascalCase
+    name` without `spec/i2s_keys.json:`
+  - [x] Green: three name tests pass
+- [x] **DicomRules_2.5** — tags `GGGG,EEEE`, VRs from DICOM's 34 (PS3.5
+  2026e Table 6.2-1, read 2026-11-24), `verified` now a list of sources, each
+  a title, an https URL and an ISO 8601 read date [Lint_03]
+  - [x] Red: an unknown VR `XX` passed (`DID NOT RAISE SpecError`);
+    `verified` was free text, so no date or URL could be checked
+  - [x] Green: four DICOM tests pass
+- [x] **TimeRules_2.6** — revision dates and `verified` dates are ISO 8601
+  calendar dates; each value type carries an `example` checked by its lexical
+  rule; a DATE_TIME requires a UTC offset between -12:00 and +14:00, to the
+  second with up to six fractional digits, from 0001-01-01 to 9999-12-31, as
+  its description and the document state [Lint_04]
+  - [x] Red: `value_types.DATE_TIME: unknown field(s) ['example']`, so a time
+    without an offset could not be checked; revisions had no date
+  - [x] Green: `test_date_time_without_offset_is_refused` fails as intended
+    with `'2026-11-24T10:30:00' is not a DATE_TIME: it has no UTC offset`;
+    four time tests pass
+- [x] **VersionRules_2.7** — the header version and status are the newest
+  revision's; revisions follow without gap or repeat and only the newest may
+  be a draft; every version group is a revision; nothing is added under an
+  older version or a ratified one [Lint_05]
+  - [x] Red: a header at 0.2 with only a 0.1 revision, a gap 0.1→0.3, a
+    repeated 0.1, two drafts, a 0.0 group and a key added to 0.1 under 0.2 all
+    passed
+  - [x] Green: eight version tests pass
+- [x] **NothingDropped_2.8** — the gate's missing cases: a key moved between
   version groups, a short name removed, a key un-deprecated, a PHI flag
   removed or its absent default changed [AppendOnly_02]
-- [ ] **Consistency_2.9** — `identity_note` exactly when `UNDER_REVIEW`; PHI
+  - [x] Red: un-deprecating passed, since `deprecated` was not witnessed; a
+    move between groups could not be expressed (the version rules above)
+  - [x] Green: `deprecated` witnessed, settable and never cleared; five
+    dropped-fact tests pass (short name and PHI flag removal were already
+    caught as `CHANGED`, now tested)
+- [x] **Consistency_2.9** — `identity_note` exactly when `UNDER_REVIEW`; PHI
   flags name BOOLEAN keys; multiplicity in an allowed form [Lint_06]
-- [ ] **AsciiDocDocument_2.10** — `spec/i2s_spec.adoc` narrative and
-  generated `.adoc` includes in place of the Markdown document [Document_02]
-- [ ] **Gates_2.11** — one entry point, `cmake --workflow --preset gates`
-  [Gates_01]
-- [ ] **CiDocument_2.12** — CI runs the gates and uploads the HTML and PDF
-  [Ci_02]
+  - [x] Red: the rules existed since 09cc501; their messages named no file
+  - [x] Green: eight consistency tests pass (six multiplicity forms)
+- [x] **AsciiDocDocument_2.10** — `spec/i2s_spec.adoc` narrative (purpose,
+  identity rules, the DII and its flag, the absent-means-PHI rule, value types,
+  how keys are added) and six generated includes with IFE's `////` banner and
+  the witness hash, in place of the Markdown document; generation deletes
+  orphaned outputs and `--check` fails on them; `cmake/render_document.cmake`
+  renders HTML and PDF with `--failure-level=WARN` and IFE's guards against a
+  missing include, an include printed as text and a table never included
+  [Document_02]
+  - [x] Red: `test_document.py`: the narrative did not exist
+    (`FileNotFoundError`) and the stale `i2s_specification.md` survived
+    generation; plain `asciidoctor` exited 0 on all three broken narratives in
+    `tests/document/`
+  - [x] Green: three document tests pass; each broken narrative fails the
+    render with its own guard (`render_document[unprocessed-include]`,
+    `[asciidoctor-failed]`, `[unincluded-file]`); control: a wrong expected
+    guard fails the test (`Required regular expression not found`)
+- [x] **Gates_2.11** — one entry point, `cmake --workflow --preset gates`:
+  configure (the generator), build, then ctest in a fixed `DEPENDS` order:
+  `i2s_lint`, `i2s_generator_check`, the tests, the three document guards,
+  `i2s_document` [Gates_01]
+  - [x] Green locally (macOS, AppleClang, Ruby 4.0.10): 10 of 10, the render
+    writing `build/release/doc/i2s_spec.html` and `.pdf`
+- [x] **CiDocument_2.12** — CI runs `cmake --workflow --preset gates` as a
+  single step after the toolchain steps (uv, Ruby with `bundler-cache` from
+  `Gemfile.lock`), and uploads `build/release/doc/` as the artifact
+  `i2s-specification` [Ci_02]
 - [ ] **VERIFY:** the maintainer reads the rendered document
 - [ ] **Gate:** CI green on the pull request
 
-## VocabularyFromScanners_3 — the scan-time vocabulary `todo` · needs SpecScaffold_1
+## TypedAttributes_3 — typed keys and an adapter for IFE's attribute pairs `todo` · needs SpecLintAndDocument_2
+
+Purpose (requested 2026-11-24): a scanner vendor's developer writes I2S
+attributes in C++ with IDE completion and compile-time type checking, and a
+viewer lists a file's I2S attributes in one loop. I2S defines the vocabulary
+(each key's name, short name, value type, DICOM VR, the text encoding of a
+value under that VR, its limits, identity class and the PHI flag rule); IFE's
+ATTRIBUTES block defines the container, so I2S defines no wire format, byte
+layout or separator between pairs. Milestone: the README's two examples
+compile as tests, a value of the wrong type fails to compile naming the key and
+the type, and every value type round-trips through its DICOM text. Branch
+`feature/TypedAttributes_3`, based on `feature/SpecLintAndDocument_2`.
+
+- [ ] **DicomEncoding_3.1** — every value is text encoded as its DICOM VR
+  (PS3.5 §6.2, verified with URL and date): DATE_TIME as DT
+  `YYYYMMDDHHMMSS.FFFFFF&ZZXX` with its offset and stated precision (this
+  replaces the ISO 8601 lexical form SpecLintAndDocument_2 checks); INTEGER as
+  IS; DECIMAL as DS; TEXT under the key's own VR (LO, LT, UT…) with its
+  length limit; BOOLEAN as a CS code modelled on a cited DICOM flag; `1-n`
+  values joined by the backslash. Each key's `vr` becomes required and linted
+  as legal for its value type; limits consistent with IFE's ATTRIBUTES block
+  (cited)
+- [ ] **TypedKeys_3.2** — one `inline constexpr` `TypedKey<Key::…>` per key
+  and per short name, with a Doxygen comment from the key's description;
+  compile-fail tests: text to DATE_TIME, int to TEXT, int to BOOLEAN, an
+  unknown key
+- [ ] **AttributesAdapter_3.3** — `I2S::Attributes`: typed writes and
+  `get()` reads, conversion to and from (key name, value text) pairs only, a
+  `Result`-style error naming the key and the text on a bad read; never
+  recursive
+- [ ] **Iteration_3.4** — `begin()`/`end()`, a `std::ranges::forward_range`
+  (`static_assert`), elements exposing the key, names, VR, identity class, text
+  and a typed view, in the spec's key order
+- [ ] **AbsentFlag_3.5** — a DII written without `DII_is_PHI` reads as PHI
+- [ ] **ScanTime_3.6** — `AcquisitionDateTime` (0008,002A) DT, short name
+  `ScanTime`, its identity class decided from cited sources
+- [ ] **ReadmeExamples_3.7** — the README's examples compiled as tests; the
+  generated document's encoding section (one example per VR) and its
+  Relation to IFE section
+- [ ] **PythonModule_3.8** — a typed Python module and `.pyi` stubs, iterable
+  `Attributes`, checked by mypy --strict; split into its own sprint if it does
+  not fit
+- [ ] **VERIFY:** the maintainer writes and lists attributes with the API
+- [ ] **Gate:** CI green on the pull request
+
+## VocabularyFromScanners_4 — the scan-time vocabulary `todo` · needs SpecScaffold_1
 
 Purpose: the scan-time facts named on 2026-11-24 (the accession identifier,
 stain, date and time of the scan, the scanner's identity down to its unique
@@ -202,50 +302,50 @@ at the start of the sprint):
   since a laboratory often derives them from the accession number; they go
   with the DII question.
 
-- [ ] **Analysis_3.1** — the research reports kept as written in
+- [ ] **Analysis_4.1** — the research reports kept as written in
   `development/analysis/`
-- [ ] **CodeSets_3.2** — the value type `CODE` and a `code_sets` section;
+- [ ] **CodeSets_4.2** — the value type `CODE` and a `code_sets` section;
   red: a CODE key without a code set refused
-- [ ] **ScanTimeKeys_3.3** — the keys the maintainer accepts, each DICOM mapping
+- [ ] **ScanTimeKeys_4.3** — the keys the maintainer accepts, each DICOM mapping
   verified with URL and date
 - [ ] **VERIFY:** the maintainer accepts the key list
 - [ ] **Gate:** CI green on the pull request
 
-## IdentityClasses_4 — every key's identity decided `blocked` · needs the maintainer's answers
+## IdentityClasses_5 — every key's identity decided `blocked` · needs the maintainer's answers
 
 Purpose: a file's I2S attributes promise to identify no individual, so no key
 can stay `UNDER_REVIEW` into a release. Milestone: no key a release depends
 on is `UNDER_REVIEW`; each decision recorded with its date.
 
-- [ ] **IdentifierIdentity_4.1** — the maintainer answers Open question 1
-- [ ] **DeviceIdentity_4.2** — the maintainer answers Open question 2
-- [ ] **PromiseAndFlag_4.3** — the maintainer answers Open question 3; IFE's
-  `METADATA_I2S` text changes with the answer (IfeAndIrisSlideAdoption_5)
+- [ ] **IdentifierIdentity_5.1** — the maintainer answers Open question 1
+- [ ] **DeviceIdentity_5.2** — the maintainer answers Open question 2
+- [ ] **PromiseAndFlag_5.3** — the maintainer answers Open question 3; IFE's
+  `METADATA_I2S` text changes with the answer (IfeAndIrisSlideAdoption_6)
 - [ ] **VERIFY:** the maintainer reviews the identity classes
 - [ ] **Gate:** CI green on the pull request
 
-## IfeAndIrisSlideAdoption_5 — the file format and the codec use I2S `todo` · needs VocabularyFromScanners_3, IdentityClasses_4
+## IfeAndIrisSlideAdoption_6 — the file format and the codec use I2S `todo` · needs VocabularyFromScanners_4, IdentityClasses_5
 
 Purpose: I2S is the vocabulary IFE's `METADATA_I2S` names. Milestone: an
 Iris-Slide encode refuses, by name, an attribute key that `I2S_Keys.hpp` does
 not define, under `METADATA_I2S`.
 
-- [ ] **IfeText_5.1** — IFE's `spec/ife_constants.json` `METADATA_I2S`
+- [ ] **IfeText_6.1** — IFE's `spec/ife_constants.json` `METADATA_I2S`
   description points to this specification and its version (a pull request
   on IFE)
-- [ ] **IrisSlideAllowlist_5.2** — Iris-Slide consumes the `i2s` CMake target
+- [ ] **IrisSlideAllowlist_6.2** — Iris-Slide consumes the `i2s` CMake target
   by FetchContent at a pinned commit and uses `I2S::key_from_name` as its
   attribute allowlist; red: an encode with a key I2S does not define is
   accepted
 - [ ] **VERIFY:** the maintainer encodes a slide and reads its attributes
 - [ ] **Gate:** CI green on both pull requests
 
-## Release_6 — public `blocked` · needs every sprint above and the licence
+## Release_7 — public `blocked` · needs every sprint above and the licence
 
-- [ ] **Licence_6.1** — the maintainer chooses the licence (Open question 4)
-- [ ] **Ratify_6.2** — version 1.0 ratified in `spec/i2s_header.json`; the
+- [ ] **Licence_7.1** — the maintainer chooses the licence (Open question 4)
+- [ ] **Ratify_7.2** — version 1.0 ratified in `spec/i2s_header.json`; the
   witness frozen for 1.0
-- [ ] **Publish_6.3** — the maintainer makes the repository public
+- [ ] **Publish_7.3** — the maintainer makes the repository public
 - [ ] **VERIFY / Gate**
 
 ## Decisions
@@ -260,7 +360,7 @@ not define, under `METADATA_I2S`.
 | Decision_06 | 2026-11-24 | `DigitalSlideIdentifier` (`DSI`) is renamed `DigitalImageIdentifier` (`DII`) and its flag `DigitalImageIdentifierIsPHI` (`DII_is_PHI`), in place in the unreleased 0.1 group with no deprecated alias; the absent-means-PHI rule is unchanged. The gate still refuses a rename: the witness was refreshed by hand, deleting the two old entries, as the reviewed act that permits this one rename before the first release |
 | Decision_07 | 2026-11-24 | No public file quotes a person; goals and decisions are stated as dated requirements, and an owner is "the maintainer". Author lines in the specification header are attribution and stay |
 
-Judgment calls made in SpecScaffold_1, for the maintainer's review:
+Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintainer's review:
 
 - The identity class of `DeviceSerialNumber` and `UniqueDeviceIdentifier` is
   `UNDER_REVIEW`, against the brief that listed them as clearly identifying
@@ -274,13 +374,23 @@ Judgment calls made in SpecScaffold_1, for the maintainer's review:
 - Only an identity class `UNDER_REVIEW` may change under the append-only
   gate; any other changed fact fails, and `--refresh-witness` refuses while
   one does.
-- `CODE` and code sets wait for VocabularyFromScanners_3, where the stain
+- `CODE` and code sets wait for VocabularyFromScanners_4, where the stain
   vocabulary gives them a first user.
 - Generated output is gitignored and regenerated at every configure, as in
   IFE; the generator runs at every configure (instead of IFE's run-when-missing
   option) because it rewrites only changed files.
 - Catch2 is pinned by release archive and SHA-256 (IFE's tests use no
   framework, so there was no IFE pin to copy).
+- Canonical form keeps schema field order rather than alphabetical order, so
+  a key reads in the order its table documents; the top level of each document
+  keeps its order, since a `// MARK` comment heads the section after it.
+- The format check runs in `--validate`, `--check` and `--fix`, and not in the
+  configure-time generation, so a hand edit still builds and the gates catch it.
+- `deprecated` is witnessed as a boolean (set or not); its reason may be
+  reworded.
+- The document is rendered through `bundle exec` from a committed
+  `Gemfile.lock` (Asciidoctor 2.0.26, Asciidoctor PDF 2.3.27, logger 1.7.0,
+  which Ruby 4 no longer loads by default), so a local render and CI's match.
 - The generated structs' public fields are plain (`info(key).short_name`)
   where the style guide asks `_leading_underscore` for data members: they are
   aggregate table rows read by consumers.
@@ -301,7 +411,7 @@ Judgment calls made in SpecScaffold_1, for the maintainer's review:
 5. **Several values in one attribute.** `SoftwareVersions` and
    `UniqueDeviceIdentifier` hold `1-n` values; how a file separates them in
    one attribute value (DICOM separates string values with a backslash) is
-   for IfeAndIrisSlideAdoption_5.
+   for IfeAndIrisSlideAdoption_6.
 
 ## Session log
 

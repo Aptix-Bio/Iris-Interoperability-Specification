@@ -2,13 +2,15 @@
 
 Compiles `spec/i2s_header.json` and `spec/i2s_keys.json` into
 `generated_source/I2S_Keys.hpp` (C++20) and
-`generated_docs/i2s_specification.md`. Standard-library Python 3.11+, so
+the AsciiDoc includes in `generated_docs/` that `spec/i2s_spec.adoc` assembles
+into the specification document. Standard-library Python 3.11+, so
 CMake runs it with any interpreter; the development tools (mypy, pytest) are
 managed by uv.
 
 ```bash
 python3 -m generator                    # validate, then write both outputs
-python3 -m generator --validate         # the schema rules and the append-only gate; writes nothing
+python3 -m generator --validate         # the linter: schema rules, canonical form, append-only gate; writes nothing
+python3 -m generator --fix              # rewrite the spec files in canonical form, then validate
 python3 -m generator --check            # CI: stale witness or an output not generated from the current spec fails
 python3 -m generator --refresh-witness  # record additions in tests/witness/witness.json
 uv run pytest && uv run mypy            # the generator's tests and strict typing
@@ -21,18 +23,18 @@ flowchart LR
     W["tests/witness/witness.json<br/>committed baseline"] --> P
     P --> M["model.py<br/>parse: schema rules, references, unique names"]
     M --> X["witness.py<br/>the facts consumers depend on"]
-    X --> V["validate.py<br/>append-only gate"]
+    X --> V["validate.py<br/>append-only gate, canonical form"]
     M --> C["emit/cpp.py"] --> O1["generated_source/I2S_Keys.hpp"]
-    M --> D["emit/docs.py"] --> O2["generated_docs/i2s_specification.md"]
+    M --> D["emit/docs.py"] --> O2["generated_docs/*.adoc"]
 ```
 
 | Module | Role |
 |---|---|
 | `__main__.py` | the command line; CMakeLists.txt calls `python -m generator -d <root>` |
 | `pipeline.py` | loads the documents (refusing a name repeated inside one JSON object, which `json.loads` would drop silently), runs the gate, writes or checks outputs |
-| `model.py` | `parse()` turns the JSON into frozen dataclasses or raises `SpecError` naming the field and the offending value |
+| `model.py` | `parse()` turns the JSON into frozen dataclasses or raises `SpecError` naming the file, the field and the offending value: names, DICOM tags and VRs, sources, dates, value-type examples, versions, consistency |
 | `witness.py` | the witnessed facts and their sha256, which every generated banner carries |
-| `validate.py` | the append-only gate: removed or changed facts fail, additions are notes |
+| `validate.py` | the append-only gate (removed or changed facts fail, additions only under the current version) and the canonical form |
 | `emit/cpp.py`, `emit/docs.py` | text only |
 
 Output is byte-stable (no timestamps, document order), which

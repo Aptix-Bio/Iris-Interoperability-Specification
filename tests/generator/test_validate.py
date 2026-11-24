@@ -12,7 +12,6 @@ import pytest
 from generator import pipeline
 from generator.model import Json, SpecError, parse
 from generator.validate import append_only
-from generator.witness import witness
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -37,7 +36,7 @@ def _keys_01(keys: Json) -> dict[str, Json]:
 
 
 def _gate(header: Json, keys: Json, baseline: Json) -> tuple[list[str], list[str]]:
-    return append_only(baseline, witness(parse(header, keys)))
+    return append_only(baseline, parse(header, keys))
 
 
 def test_committed_spec_passes() -> None:
@@ -97,6 +96,11 @@ def test_duplicate_name_across_version_groups_is_rejected() -> None:
     header_02 = copy.deepcopy(header)
     assert isinstance(header_02, dict)
     header_02["version"] = {"major": 0, "minor": 2}
+    revisions = header_02["revisions"]
+    assert isinstance(revisions, list) and isinstance(revisions[0], dict)
+    revisions[0]["status"] = "ratified"
+    revisions.append({"version": "0.2", "status": "draft", "date": "2026-11-24",
+                      "authors": ["Example Author"], "summary": "Example revision."})
     edited = copy.deepcopy(keys)
     assert isinstance(edited, dict)
     group = edited["keys"]
