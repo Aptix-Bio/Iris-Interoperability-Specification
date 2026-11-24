@@ -96,12 +96,12 @@ generator refuse a removed key, a retyped key and a duplicate name. Branch
   checked by `test_generation_is_deterministic` [Document_01]. Commit 09cc501
 - [x] **DevelopmentFolder_1.8** — this folder: README, WBS, RTM,
   `style_guide.md` (adapted from Iris-Slide's copy), `ci_runners.md`;
-  `CONTRIBUTING.md` at the root [Process_01]
+  `CONTRIBUTING.md` at the root [Process_01]. Commit 7204884
 - [x] **CiWorkflow_1.9** — `.github/workflows/ci.yml` on Blacksmith's
   `blacksmith-2vcpu-ubuntu-2404` (Ryan, 2026-11-24: "We should be using
   blacksmith for our CI runners"): non-draft pull requests and by hand only,
   documentation-only changes skipped, 15-minute timeout, actions pinned by
-  commit, uv and `dependencies/` cached [Ci_01]
+  commit, uv and `dependencies/` cached [Ci_01]. Commit 7204884
   - [x] Rehearsed locally on macOS: the workflow's configure line, `--check`
     and `ctest --preset release` green. Not rehearsed in a Linux container
     *(to do on the first run)*; the image's CMake and Ninja are taken from
