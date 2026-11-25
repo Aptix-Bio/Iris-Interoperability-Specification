@@ -49,6 +49,33 @@ foreach(case text_to_date_time int_to_text int_to_boolean unknown_key flat_spell
                 "-DEXPECT=${compile_fail_${case}}" -P "${PROJECT_SOURCE_DIR}/cmake/expect_compile_error.cmake")
 endforeach()
 
+# RTM SingleHeader_02
+# Two translation units, one defining I2S_IMPLEMENTATION: the program links
+# only when every non-template function of I2S.hpp is defined exactly once.
+add_executable(i2s_two_units cpp/two_units/with_implementation.cpp cpp/two_units/other_unit.cpp)
+target_link_libraries(i2s_two_units PRIVATE I2S::i2s)
+target_compile_options(i2s_two_units PRIVATE
+    $<IF:$<CXX_COMPILER_ID:MSVC>,/W4 /WX,-Wall -Wextra -Wpedantic -Werror>)
+add_test(NAME i2s_two_units COMMAND i2s_two_units)
+
+# RTM SingleHeader_02
+# A program in which no translation unit defines I2S_IMPLEMENTATION fails to
+# link, and the linker names the I2S function it found no body for.
+add_executable(i2s_missing_implementation EXCLUDE_FROM_ALL cpp/missing_implementation.cpp)
+target_link_libraries(i2s_missing_implementation PRIVATE I2S::i2s)
+add_test(NAME i2s_missing_implementation_fails_to_link
+    COMMAND "${CMAKE_COMMAND}" -DBINARY_DIR=${CMAKE_BINARY_DIR} -DTARGET=i2s_missing_implementation
+            "-DEXPECT=I2S::Attributes::to_pairs" -P "${PROJECT_SOURCE_DIR}/cmake/expect_compile_error.cmake")
+
+# RTM SingleHeader_03
+# The install: only I2S.hpp and the package files, and a program built against
+# the install prefix alone.
+add_test(NAME i2s_install
+    COMMAND "${CMAKE_COMMAND}" -DBINARY_DIR=${CMAKE_BINARY_DIR} -DPREFIX=${CMAKE_CURRENT_BINARY_DIR}/install_prefix
+            -DCONSUMER=${CMAKE_CURRENT_SOURCE_DIR}/install -DCONSUMER_BINARY=${CMAKE_CURRENT_BINARY_DIR}/install_consumer
+            "-DGENERATOR=${CMAKE_GENERATOR}" -DCXX=${CMAKE_CXX_COMPILER}
+            -P "${PROJECT_SOURCE_DIR}/cmake/install_test.cmake")
+
 # RTM Readme_01
 # The README's C++ examples, compiled and run.
 set(readme_source "${CMAKE_CURRENT_BINARY_DIR}/readme_examples.cpp")
@@ -110,7 +137,8 @@ add_test(NAME i2s_document COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DI
 set_tests_properties(i2s_generator_check PROPERTIES DEPENDS i2s_lint)
 set(i2s_tests i2s_pytest i2s_mypy i2s_keys_tests i2s_renamed_key_fails_to_compile i2s_attributes_tests
     i2s_compile_fail_text_to_date_time i2s_compile_fail_int_to_text i2s_compile_fail_int_to_boolean
-    i2s_compile_fail_unknown_key i2s_compile_fail_flat_spelling i2s_readme_examples)
+    i2s_compile_fail_unknown_key i2s_compile_fail_flat_spelling i2s_readme_examples i2s_two_units
+    i2s_missing_implementation_fails_to_link i2s_install)
 set_tests_properties(${i2s_tests} PROPERTIES DEPENDS i2s_generator_check)
 set_tests_properties(i2s_document_refuses_printed_include i2s_document_refuses_missing_include
     i2s_document_refuses_unincluded_table

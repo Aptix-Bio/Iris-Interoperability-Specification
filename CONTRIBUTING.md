@@ -20,7 +20,9 @@ has to mean the same thing forever. Read `README.md`, this page and
    promise to identify no individual.
 3. **Never hand-edit generated output.** `generated_source/` and
    `generated_docs/` carry a DO-NOT-EDIT banner and are rewritten at every
-   configure. Change the JSON or the emitter in `generator/emit/`.
+   configure. Change the JSON, the emitter in `generator/emit/`, or, for the
+   attributes API in `I2S.hpp`, its sources in `include/` (the lines between
+   each file's `// BEGIN I2S.hpp` and `// END I2S.hpp` markers are copied).
 4. **`tests/witness/witness.json` is evidence.** It records every witnessed
    fact of the committed specification, and `python -m generator --validate`
    compares the current spec against it: a removed or changed fact fails,

@@ -2,7 +2,7 @@
 // compiler refuses the assignment below and its diagnostic names what the
 // test expects (tests/CMakeLists.txt).
 // RTM TypedKeys_01
-#include "I2S_Attributes.hpp"
+#include "I2S.hpp"
 
 int main()
 {

@@ -5,7 +5,7 @@
 // consumer still using the old name fails to build instead of the old name
 // falling back to some other key at run time.
 // RTM Generated_04
-#include "I2S_Keys.hpp"
+#include "I2S.hpp"
 
 int main()
 {

@@ -1,7 +1,9 @@
 // I2S::Attributes: typed keys, the DICOM text of each value, the adapter to and
 // from IFE's (key name, value text) attribute pairs, and iteration.
 // RTM TypedKeys_01, Encoding_01, Adapter_01, Iteration_01, PhiFlag_02, DicomSource_01
-#include "I2S_Attributes.hpp"
+// The one translation unit of this program, so I2S.hpp's function bodies compile here.
+#define I2S_IMPLEMENTATION
+#include "I2S.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 

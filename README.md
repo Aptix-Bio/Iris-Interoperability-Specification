@@ -25,13 +25,35 @@ Clinical information can be optionally encoded in a iris slide but not within
 the `METADATA_I2S` and instead should be encoded within the clinical metadata
 block within HL7 compatible streams.
 
+## Using I2S
+
+I2S installs one header, `I2S.hpp`, and a CMake package:
+
+```bash
+cmake --preset release && cmake --build --preset release
+cmake --install build/release --prefix <prefix>
+```
+
+```cmake
+find_package(I2S 0.1 REQUIRED CONFIG)   # with <prefix> on CMAKE_PREFIX_PATH
+target_link_libraries(scanner PRIVATE I2S::i2s)
+```
+
+Every source file includes `<I2S.hpp>`. Exactly one `.cpp` of a program
+writes `#define I2S_IMPLEMENTATION` before its `#include <I2S.hpp>`, which
+compiles the bodies of I2S's non-template functions there and nowhere else.
+Without that `.cpp`, linking fails with undefined references to I2S's
+functions (`I2S::Attributes::to_pairs() const`, say); with two, it fails with
+duplicate definitions of them.
+
 ## Writing attributes
 
-A scanner writes I2S attributes through `I2S_Attributes.hpp`. Each key is a
-constant in namespace `I2S::Attribute` whose type carries the key's value
-type, so an IDE completes the key names and the compiler refuses a value of
-the wrong type. The whole vocabulary is listed at the top of the generated
-`I2S_Keys.hpp`, one line per key.
+A scanner writes I2S attributes through `I2S.hpp`. Each key is a constant in
+namespace `I2S::Attribute` whose type carries the key's value type, so an IDE
+completes the key names and the compiler refuses a value of the wrong type.
+The constants open the header, each with its full description, value type,
+VR, multiplicity, DICOM attribute and identity class, which is what an IDE
+shows on hover.
 
 ```cpp
 I2S::Attributes attributes;

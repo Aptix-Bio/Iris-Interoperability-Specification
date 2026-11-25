@@ -21,7 +21,10 @@ if(count EQUAL 0)
     message(FATAL_ERROR "readme_examples: ${README} has no ```cpp block")
 endif()
 set(source "// Generated from ${README} by cmake/readme_examples.cmake. DO NOT EDIT BY HAND.\n")
-string(APPEND source "#include \"I2S_Attributes.hpp\"\n\n#include <chrono>\n#include <iostream>\n\n")
+# The examples are a program's one translation unit, so it defines
+# I2S_IMPLEMENTATION before including the one header, as the README tells a
+# consumer to.
+string(APPEND source "#define I2S_IMPLEMENTATION\n#include \"I2S.hpp\"\n\n#include <chrono>\n#include <iostream>\n\n")
 set(index 0)
 set(calls "")
 foreach(block IN LISTS blocks)

@@ -4,7 +4,7 @@
 // I2S::Attribute::Manufacturer (decided 2026-11-25); the flat spelling it
 // replaced must not compile.
 // RTM ReadableHeaders_01
-#include "I2S_Attributes.hpp"
+#include "I2S.hpp"
 
 int main()
 {

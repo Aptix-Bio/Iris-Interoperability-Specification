@@ -31,7 +31,7 @@ stating whether its value can identify a person.
 
 I2S is published as a machine-readable schema, `spec/i2s_header.json` and
 `spec/i2s_keys.json`. A generator compiles it into a C++20 header,
-`I2S_Keys.hpp`, and into the tables and key sections of this document, so
+`I2S.hpp`, and into the tables and key sections of this document, so
 neither can disagree with the schema. Implementers *should* consume the schema
 or the generated header rather than transcribe this document. The schema and
 the generator are at {repository}.

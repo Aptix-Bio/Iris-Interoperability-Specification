@@ -1,8 +1,17 @@
 # generated_source/
 
-`I2S_Keys.hpp`, the vocabulary as scoped enumerations, constexpr tables and
-one typed constant per key and short name (with documentation an IDE shows on
-hover), written by `python -m generator` from `spec/*.json` at every
-CMake configure. It is gitignored and carries a DO-NOT-EDIT banner: change the
-JSON or the emitter in `generator/emit/cpp.py`, then reconfigure. The hand-written adapter over it, `I2S_Attributes.hpp`, is
-in `include/`.
+Written by `python -m generator` at every CMake configure, gitignored, and
+carrying a DO-NOT-EDIT banner:
+
+- `I2S.hpp`, the one header a program includes and CMake installs: the
+  vocabulary, then the public declarations and the implementation, copied
+  from the hand-written sources in `include/` between their
+  `// BEGIN I2S.hpp` and `// END I2S.hpp` markers. Exactly one `.cpp` of a
+  program defines `I2S_IMPLEMENTATION` before including it.
+- `I2S_Keys.hpp`, the vocabulary alone, which the sources in `include/`
+  include while they are edited. It opens with one typed constant per key and
+  short name in `I2S::Attribute`, each documented as an IDE shows on hover,
+  then the version, the scoped enumerations and the constexpr tables.
+
+Change the JSON, the emitter in `generator/emit/cpp.py` or a source in
+`include/`, then reconfigure.

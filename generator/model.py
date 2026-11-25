@@ -203,7 +203,7 @@ class Spec:
 # Each VR's rule, as I2S writes it (PS3.5 section 6.2, read 2026-11-24): the
 # reason a text is not a value of that VR, or None. A VR the JSON defines
 # without a rule here is refused, so its examples are always checkable. The
-# C++ codec (include/I2S_Attributes.hpp) implements the same rules at run time;
+# C++ codec (include/detail/I2S_Attributes_impl.hpp, in I2S.hpp) implements the same rules at run time;
 # its tests read every VR's example through it.
 
 def _controls(allowed: str) -> Callable[[str], str | None]:

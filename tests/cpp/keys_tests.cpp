@@ -2,7 +2,7 @@
 // static_assert is one: the tables are constexpr, so a wrong table fails the
 // build instead of a test run.
 // RTM Generated_01, Generated_02, Generated_03
-#include "I2S_Keys.hpp"
+#include "I2S.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 

@@ -5,7 +5,7 @@ append-only gate, then generate, check or refresh. Every generated file is
 rendered in memory into `outputs` (relative path -> text) before anything is
 written, so --check and the writer share one list of outputs.
 """
-# RTM UniqueNames_01, AppendOnly_01
+# RTM UniqueNames_01, AppendOnly_01, SingleHeader_01
 from __future__ import annotations
 
 import json
@@ -14,7 +14,7 @@ import sys
 from enum import StrEnum
 from pathlib import Path
 
-from .emit.cpp import emit_header
+from .emit.cpp import SOURCES, emit_header, emit_single_header
 from .emit.docs import emit_documents
 from .model import HEADER_FILE, KEYS_FILE, Json, Spec, SpecError, parse
 from .validate import append_only, canonical
@@ -51,8 +51,10 @@ def load_json(path: Path) -> Json:
     return value
 
 
-def _outputs(spec: Spec, digest: str, out_dir: Path, docs_dir: Path) -> dict[Path, str]:
-    outputs = {out_dir / "I2S_Keys.hpp": emit_header(spec, digest)}
+def _outputs(spec: Spec, digest: str, root: Path, out_dir: Path, docs_dir: Path) -> dict[Path, str]:
+    sources = {rel: (root / rel).read_text(encoding="utf-8") for rel in SOURCES}
+    outputs = {out_dir / "I2S_Keys.hpp": emit_header(spec, digest),
+               out_dir / "I2S.hpp": emit_single_header(spec, digest, sources)}
     for name, text in emit_documents(spec, digest).items():
         outputs[docs_dir / name] = text
     return outputs
@@ -80,10 +82,16 @@ def _check(outputs: dict[Path, str], digest: str) -> int:
     for orphan in _orphans(outputs):
         print(f"generator: {orphan} is not produced from the current spec", file=sys.stderr)
         stale += 1
-    for path in outputs:
-        found = _HASH.search(path.read_text(encoding="utf-8")) if path.is_file() else None
-        if found is None or found.group(1) != digest:
+    for path, text in outputs.items():
+        found = path.read_text(encoding="utf-8") if path.is_file() else ""
+        witnessed = _HASH.search(found)
+        if witnessed is None or witnessed.group(1) != digest:
             print(f"generator: {path} was not generated from the current spec", file=sys.stderr)
+            stale += 1
+        elif found != text:
+            # I2S.hpp also depends on the sources in include/, which the
+            # witness hash does not cover, so the whole text is compared.
+            print(f"generator: {path} differs from what the current spec and sources produce", file=sys.stderr)
             stale += 1
     if stale:
         return 1
@@ -148,7 +156,11 @@ def run(root: Path, out_dir: Path, docs_dir: Path, mode: Mode = Mode.GENERATE) -
         return 0
 
     digest = witness_hash(spec)
-    outputs = _outputs(spec, digest, out_dir, docs_dir)
+    try:
+        outputs = _outputs(spec, digest, root, out_dir, docs_dir)
+    except (OSError, SpecError) as error:
+        print(f"generator: {error}", file=sys.stderr)
+        return 1
     if mode is Mode.CHECK:
         if additions:
             print("generator: the witness is stale; record additions with --refresh-witness", file=sys.stderr)

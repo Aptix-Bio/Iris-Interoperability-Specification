@@ -1,13 +1,16 @@
 // detail/I2S_Concepts.hpp: the concepts naming the C++ types each value type
 // accepts. I2S_Attributes.hpp includes it ahead of its declarations, which are
 // constrained on these concepts; it is not meant to be included on its own. A
-// refused value's compiler note names the concept it failed.
-// RTM TypedKeys_01, ReadableHeaders_01, DicomSource_01
+// refused value's compiler note names the concept it failed. The lines between
+// the BEGIN and END markers are copied into the generated I2S.hpp ahead of the
+// public declarations.
+// RTM TypedKeys_01, ReadableHeaders_01, DicomSource_01, SingleHeader_01
 #ifndef I2S_DETAIL_CONCEPTS_HPP
 #define I2S_DETAIL_CONCEPTS_HPP
 
 #include "I2S_Keys.hpp"
 
+// BEGIN I2S.hpp
 #include <chrono>
 #include <concepts>
 #include <cstdint>
@@ -89,5 +92,6 @@ concept Assignable = (kType<K> == ValueType::TEXT && (TextValue<T> || (kMany<K> 
 } // namespace detail
 
 } // namespace I2S
+// END I2S.hpp
 
 #endif // I2S_DETAIL_CONCEPTS_HPP

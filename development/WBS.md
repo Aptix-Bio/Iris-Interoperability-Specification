@@ -35,6 +35,7 @@ flowchart LR
     S3 --> S5["VocabularyFromScanners_5"]
     S3 --> S6["IdentityClasses_6"]
     S3 --> S9["ReadableHeadersAndExamples_9"]
+    S9 --> S10["InstalledSingleHeader_10"]
     S5 --> S7["IfeAndIrisSlideAdoption_7"]
     S6 --> S7
     S4 --> S8["Release_8"]
@@ -47,6 +48,7 @@ flowchart LR
 | SpecLintAndDocument_2 | `cmake --workflow --preset gates` runs the linter, the generator check, the tests and the AsciiDoc render, locally and on CI, and CI publishes the HTML and PDF | `doing` (in PR #1, CI green) |
 | TypedAttributes_3 | a vendor's C++ writes `attributes[I2S::Attribute::ScanTime] = std::chrono::system_clock::now();` (spelled `I2S::ScanTime` until ReadableHeadersAndExamples_9) with completion and compile-time type checking; every value encoded as its DICOM VR; `I2S::Attributes` iterates, and adapts to and from IFE's attribute pairs | `doing` (in PR #1, CI green) |
 | ReadableHeadersAndExamples_9 | `I2S_Keys.hpp` opens with the whole vocabulary, one line per key, spelled `I2S::Attribute::Manufacturer`; `I2S_Attributes.hpp` opens with the public declarations; the README shows writing attributes, reading them from a DICOM file, and writing them into an Iris slide | `doing` (in PR #1) |
+| InstalledSingleHeader_10 | a program includes only an installed `<I2S.hpp>`, whose first code is the `I2S::Attribute` constants with their full documentation, defines `I2S_IMPLEMENTATION` in one `.cpp`, and builds against `find_package(I2S)`; the gates green | `doing` (in PR #1) |
 | PythonAttributes_4 | `attributes[I2S.ScanTime] = datetime.now(timezone.utc)` type-checks under mypy --strict from generated stubs, a naive datetime is refused at run time, and `Attributes` iterates | `todo` |
 | VocabularyFromScanners_5 | the keys every scanner family writes at scan time (stain, scan date and time, optics, resolution) generated and tested, each DICOM mapping verified | `todo` |
 | IdentityClasses_6 | every key's identity class decided by the maintainer; no key left `UNDER_REVIEW` that a release depends on | `blocked` on the maintainer's answers (Open questions) |
@@ -384,6 +386,84 @@ pull request #1 (Decision_08).
   `blacksmith-2vcpu-ubuntu-2404`, gates 17 of 17 (the five compile-fail cases
   pass under GCC too)
 
+## InstalledSingleHeader_10 — one installed header, keys first `doing` · needs ReadableHeadersAndExamples_9
+
+Purpose (requested 2026-11-25): the first thing a programmer reads in the
+header is the keys, each with its full documentation as an IDE shows it on
+hover; and a program includes one installed header, `I2S.hpp`, whose function
+bodies compile in the one `.cpp` that defines `I2S_IMPLEMENTATION`, as
+single-file libraries in the stb style do. Milestone: `cmake --install` writes
+`include/I2S.hpp` and the `I2S` CMake package; a program configured against
+that prefix alone includes `<I2S.hpp>` and runs; the gates green. Committed to
+`feature/SpecScaffold_1`, through pull request #1 (Decision_08).
+
+- [x] **KeysFirst_10.1** — `generator/emit/cpp.py` writes namespace
+  `I2S::Attribute` as the first code after the includes, preceded only by the
+  `Key` enumeration (names only, wrapped, so it stays four lines) and
+  `TypedKey`, which the constants are declared with; each constant carries
+  its three-line `///` block (description in full; value type, VR and
+  multiplicity; DICOM attribute and identity class) and its short name's
+  constant follows it; the version constants and every table come after. The
+  `kKeys` rows no longer repeat the descriptions (Decision_13)
+  [ReadableHeaders_02]
+  - [x] Red: `uv run pytest tests/generator/test_header.py`, 4 failed: `assert
+    (3 == 0)` (the version constants came before the `Key` enumeration) and
+    `StopIteration` (no constant with a documentation block)
+  - [x] Green: `uv run pytest` 70 passed
+- [x] **OneHeader_10.2** — the generator stitches `generated_source/I2S.hpp`:
+  include guard `I2S_HPP`, the standard includes of every part once, the
+  vocabulary and tables of `I2S_Keys.hpp`, then the lines between the
+  `// BEGIN I2S.hpp` and `// END I2S.hpp` markers of
+  `include/detail/I2S_Concepts.hpp`, `include/I2S_Attributes.hpp` and
+  `include/detail/I2S_Attributes_impl.hpp`, in that order. The split sources
+  stay the edited files (each still compiles in an editor through
+  `I2S_Keys.hpp`); a source missing its markers fails generation naming it,
+  and `--check` now compares each output's whole text, since the witness hash
+  does not cover `include/`. Only `generated_source/` is on the `i2s`
+  target's include path, so every test, compile-fail case and the README gate
+  include `I2S.hpp`, the header that is installed [SingleHeader_01]
+  - [x] Red: `uv run pytest tests/generator/test_single_header.py`:
+    `ImportError: cannot import name 'SOURCES' from 'generator.emit.cpp'`; the
+    build of the respelled tests: `fatal error: 'I2S.hpp' file not found`
+  - [x] Green: `test_single_header.py` 5 passed; all 20 gates
+- [x] **ImplementationGuard_10.3** — the non-template function bodies (the
+  codec, `Element`'s members, `Attributes::keep`, `text`, `errors`,
+  `to_pairs`, `from_pairs`, `begin`, `end`, `check_pair`, and the codec's
+  helpers) are under `#ifdef I2S_IMPLEMENTATION`, none `inline`; helpers only
+  those bodies call are in an anonymous namespace there. Templates, class
+  definitions (`Attributes::Iterator`, `Slot`), concepts and constexpr tables
+  stay outside, with declarations of the three helpers templates call
+  (`detail::refuse`, `quoted`, `check_lexical`) and of the public codec
+  functions in `I2S_Attributes.hpp`. `I2S_HEADER_ONLY` is not provided
+  (Decision_12) [SingleHeader_02]
+  - [x] Red: `i2s_two_units` and `i2s_missing_implementation` did not build
+    (`'I2S.hpp' file not found`)
+  - [x] Green: `i2s_two_units` (one unit defines `I2S_IMPLEMENTATION`, one does
+    not, including the header twice) links and runs;
+    `i2s_missing_implementation_fails_to_link` passes on clang's `Undefined
+    symbols … I2S::Attributes::to_pairs() const`; under GCC 13.3 (Ubuntu
+    24.04, locally in a container) the two-unit program, the README examples
+    and the install consumer build with `-Werror` and run, and the missing
+    define fails with `undefined reference to I2S::Attributes::to_pairs`.
+    Two units both defining it fail with `duplicate symbol` (checked once by
+    hand, not a gate)
+- [x] **Install_10.4** — `CMakeLists.txt` installs `I2S.hpp` into
+  `<prefix>/include` and the package `I2SConfig.cmake`, `I2STargets.cmake`
+  (target `I2S::i2s`) and `I2SConfigVersion.cmake` (version 0.1,
+  `SameMinorVersion`, architecture-independent) into `<prefix>/lib/cmake/I2S`;
+  `cmake/install_test.cmake` installs into a fresh prefix under the build
+  tree, refuses any other installed file, then configures, builds and runs
+  `tests/install` (one `.cpp` including only `<I2S.hpp>`, twice) against that
+  prefix alone. The README gains "Using I2S" [SingleHeader_03, Readme_01]
+  - [x] Red: `i2s_install` failed: `the install must hold include/I2S.hpp and
+    the package files only; found:` (nothing installed)
+  - [x] Green: `i2s_install` passed; `cmake --workflow --preset gates` 20 of
+    20 (from 17: `i2s_two_units`, `i2s_missing_implementation_fails_to_link`,
+    `i2s_install`)
+- [ ] **VERIFY:** the maintainer reads the first screen of `I2S.hpp` and builds
+  against an install
+- [ ] **Gate:** CI green on pull request #1
+
 ## PythonAttributes_4 — the same vocabulary, typed in Python `todo` · needs TypedAttributes_3
 
 Purpose (requested 2026-11-24): `attributes[I2S.ScanTime] =
@@ -517,6 +597,8 @@ not define, under `METADATA_I2S`.
 | Decision_08 | 2026-11-24 | One branch and one pull request per repository, with no stacked pull requests: every I2S sprint is committed to `feature/SpecScaffold_1` and lands through pull request #1, each sprint's commits distinct and its WBS section intact |
 | Decision_10 | 2026-11-25 | Each key is spelled one way, as a constant in namespace `I2S::Attribute` (`attributes[I2S::Attribute::Manufacturer] = "Leica";`); the flat `I2S::Manufacturer` spelling is removed before anyone depends on it. Short names live in the same namespace. The installed headers read vocabulary first: `I2S_Keys.hpp` lists every key on one line right after the version constants, and `I2S_Attributes.hpp` holds the public declarations, with the bodies in `include/detail/` |
 | Decision_11 | 2026-11-25 | The README's fence states whether an example is compiled: ```` ```cpp ```` is compiled and run as a test; ```` ```c++ ```` needs a library I2S does not build against (DCMTK, IFE) and is shown only |
+| Decision_12 | 2026-11-25 | A program includes one header, `I2S.hpp`, generated by stitching the vocabulary with the hand-written sources in `include/` (which stay the files edited); CMake installs it and a package, `find_package(I2S)` with target `I2S::i2s`. Its non-template function bodies compile only where `I2S_IMPLEMENTATION` is defined, in exactly one `.cpp` of a program, so each has one definition and every other unit compiles declarations only. `I2S_HEADER_ONLY` is not provided: it would need a macro on every guarded definition, and the internal-linkage helpers called from `inline` functions would break the one-definition rule |
+| Decision_13 | 2026-11-25 | The keys open both generated headers: the first code after the includes is namespace `I2S::Attribute`, each constant with its full three-line documentation and its short name right after it; only the names-only `Key` enumeration and `TypedKey` precede it. This replaces Decision_10's one line per key |
 | Decision_09 | 2026-11-24 | Every attribute value is text, encoded as its DICOM VR (PS3.5 section 6.2): DATE_TIME as DT with its offset, INTEGER as IS, DECIMAL as DS, TEXT as the key's string VR, BOOLEAN as the CS values YES and NO; several values joined by the backslash. I2S defines the vocabulary and the text of a value; IFE's attribute block is the container. `I2S::Attributes` is an iterable adapter to and from IFE's (key name, value text) pairs |
 
 Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintainer's review:
@@ -545,12 +627,13 @@ Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintai
   keeps its order, since a `// MARK` comment heads the section after it.
 - The format check runs in `--validate`, `--check` and `--fix`, and not in the
   configure-time generation, so a hand edit still builds and the gates catch it.
-- ReadableHeadersAndExamples_9: I2S has no install rules; a consumer builds
-  against the source tree (IrisSlideAllowlist_7.2 uses FetchContent). The
+- ReadableHeadersAndExamples_9 (superseded by Decision_12, 2026-11-25): I2S
+  has no install rules; a consumer builds against the source tree
+  (IrisSlideAllowlist_7.2 uses FetchContent). The
   detail headers are reached by a path relative to the public header
   (`detail/I2S_Concepts.hpp`), so an install rule, when one is added, copies
   `include/` whole with `generated_source/I2S_Keys.hpp` beside it.
-- ReadableHeadersAndExamples_9: the key descriptions moved from the hover
+- ReadableHeadersAndExamples_9 (superseded by Decision_13, 2026-11-25): the key descriptions moved from the hover
   documentation of each constant to a comment above each `kKeys` row, so the
   vocabulary block stays one line per key; the hover shows the value type,
   VR, multiplicity and DICOM attribute.
@@ -621,3 +704,5 @@ Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintai
   text through Iris-Headers' `EncodeSlideInfo::attributes`; the README's
   example (c) shows the encoder path; open question 8 carries the proposed
   version packing.
+- 2026-11-25 — InstalledSingleHeader_10: keys first with full documentation;
+  one installed `I2S.hpp`, `I2S_IMPLEMENTATION`, install rules and package.
