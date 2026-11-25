@@ -4,6 +4,7 @@
 // The one translation unit of this program, so I2S.hpp's function bodies compile here.
 #define I2S_IMPLEMENTATION
 #include "I2S.hpp"
+#include "I2S_VrExamples.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -147,9 +148,9 @@ TEST_CASE("a string VR is held to its length in characters and refuses a backsla
 
 TEST_CASE("every VR's example in the spec reads through the codec", "[Encoding_01]")
 {
-    for (const I2S::VrInfo& vr : I2S::kVrs) {
-        INFO(vr.name);
-        CHECK(I2S::check_text(vr.vr, vr.example).has_value());
+    for (const I2S::test::VrExample& example : I2S::test::kVrExamples) {
+        INFO(I2S::info(example.vr).name);
+        CHECK(I2S::check_text(example.vr, example.text).has_value());
     }
 }
 

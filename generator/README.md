@@ -3,8 +3,9 @@
 Compiles `spec/i2s_header.json` and `spec/i2s_keys.json` into
 `generated_source/I2S_Keys.hpp` (C++20, the vocabulary), stitches that
 vocabulary with the hand-written sources in `include/` into
-`generated_source/I2S.hpp` (the one installed header), and
-the AsciiDoc includes in `generated_docs/` that `spec/i2s_spec.adoc` assembles
+`generated_source/I2S.hpp` (the one installed header),
+`generated_source/I2S_VrExamples.hpp` (each VR's example, for the tests
+only; never installed), and the AsciiDoc includes in `generated_docs/` that `spec/i2s_spec.adoc` assembles
 into the specification document. Standard-library Python 3.11+, so
 CMake runs it with any interpreter; the development tools (mypy, pytest) are
 managed by uv.
@@ -29,6 +30,7 @@ flowchart LR
     M --> C["emit/cpp.py"] --> O1["generated_source/I2S_Keys.hpp"]
     S["include/*.hpp, include/detail/*.hpp<br/>between BEGIN and END markers"] --> P
     C --> O3["generated_source/I2S.hpp<br/>vocabulary, declarations, implementation"]
+    C --> O4["generated_source/I2S_VrExamples.hpp<br/>tests only"]
     M --> D["emit/docs.py"] --> O2["generated_docs/*.adoc"]
 ```
 

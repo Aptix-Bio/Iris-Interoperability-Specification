@@ -14,7 +14,7 @@ import sys
 from enum import StrEnum
 from pathlib import Path
 
-from .emit.cpp import SOURCES, emit_header, emit_single_header
+from .emit.cpp import SOURCES, emit_header, emit_single_header, emit_vr_examples
 from .emit.docs import emit_documents
 from .model import HEADER_FILE, KEYS_FILE, Json, Spec, SpecError, parse
 from .validate import append_only, canonical
@@ -54,7 +54,8 @@ def load_json(path: Path) -> Json:
 def _outputs(spec: Spec, digest: str, root: Path, out_dir: Path, docs_dir: Path) -> dict[Path, str]:
     sources = {rel: (root / rel).read_text(encoding="utf-8") for rel in SOURCES}
     outputs = {out_dir / "I2S_Keys.hpp": emit_header(spec, digest),
-               out_dir / "I2S.hpp": emit_single_header(spec, digest, sources)}
+               out_dir / "I2S.hpp": emit_single_header(spec, digest, sources),
+               out_dir / "I2S_VrExamples.hpp": emit_vr_examples(spec, digest)}
     for name, text in emit_documents(spec, digest).items():
         outputs[docs_dir / name] = text
     return outputs

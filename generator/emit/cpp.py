@@ -96,9 +96,11 @@ def _row(key: Key) -> str:
 
 
 def _vr_row(vr: ValueRepresentation) -> str:
-    return (f"    VrInfo{{Vr::{vr.name}, {_string(vr.name)}, {vr.max_length}u, "
+    """One kVrs row, its example as the comment above it: the example is documentation, not data."""
+    return (f"    // e.g. {vr.example}\n"
+            f"    VrInfo{{Vr::{vr.name}, {_string(vr.name)}, {vr.max_length}u, "
             f"{'true' if vr.length_unit == 'characters' else 'false'}, "
-            f"{'true' if vr.multiple_values else 'false'}, {_string(vr.example)}}},")
+            f"{'true' if vr.multiple_values else 'false'}}},")
 
 
 def _doc_block(key: Key) -> list[str]:
@@ -185,10 +187,10 @@ struct VrInfo {{
     std::uint32_t max_length;
     bool counts_characters;
     bool multiple_values;
-    std::string_view example;
 }};
 
-/// Indexed by Vr.
+/// Indexed by Vr. Each row's comment is the spec's example value; the
+/// specification's value-representations table documents each VR in full.
 inline constexpr std::array<VrInfo, {len(spec.value_representations)}> kVrs{{{{
 {vr_rows}
 }}}};
@@ -295,6 +297,21 @@ def emit_header(spec: Spec, digest: str) -> str:
     """I2S_Keys.hpp: the vocabulary alone, which the sources in include/ are edited against."""
     includes = "\n".join(_KEYS_INCLUDES)
     return f"{_banner(digest)}\n#ifndef I2S_KEYS_HPP\n#define I2S_KEYS_HPP\n\n{includes}\n\n{_keys_body(spec)}\n\n#endif // I2S_KEYS_HPP\n"
+
+
+def emit_vr_examples(spec: Spec, digest: str) -> str:
+    """I2S_VrExamples.hpp: each VR's example from the spec, for the tests alone.
+
+    Not part of I2S.hpp and never installed. The examples are documentation;
+    the tests read them so the C++ codec is held to the same examples the
+    generator checks in Python.
+    """
+    rows = "\n".join(f"    VrExample{{Vr::{vr.name}, {_string(vr.example)}}}," for vr in spec.value_representations)
+    return (f"{_banner(digest)}\n#ifndef I2S_VR_EXAMPLES_HPP\n#define I2S_VR_EXAMPLES_HPP\n\n"
+            f"#include \"I2S.hpp\"\n\n#include <array>\n#include <string_view>\n\nnamespace I2S::test {{\n\n"
+            f"struct VrExample {{\n    Vr vr;\n    std::string_view text;\n}};\n\n"
+            f"inline constexpr std::array<VrExample, {len(spec.value_representations)}> kVrExamples{{{{\n{rows}\n}}}};\n\n"
+            f"}} // namespace I2S::test\n\n#endif // I2S_VR_EXAMPLES_HPP\n")
 
 
 def _region(path: str, text: str) -> tuple[list[str], str]:
