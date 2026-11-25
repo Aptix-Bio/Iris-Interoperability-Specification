@@ -1,7 +1,7 @@
 // The generated header, used as a consumer uses it. Every check that can be a
 // static_assert is one: the tables are constexpr, so a wrong table fails the
 // build instead of a test run.
-// RTM Generated_01, Generated_02, Generated_03
+// RTM Generated_01, Generated_02, Generated_03, Adoption_03
 #include "I2S.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -100,4 +100,14 @@ TEST_CASE("the DII is paired with DII_is_PHI, which defaults to PHI when absent"
     STATIC_REQUIRE(I2S::key_from_name("DII_is_PHI") == I2S::Key::DigitalImageIdentifierIsPHI);
     STATIC_REQUIRE(I2S::info(I2S::Key::DigitalImageIdentifierIsPHI).identity == I2S::IdentityClass::NONE);
     STATIC_REQUIRE_FALSE(I2S::info(I2S::Key::DigitalImageIdentifierIsPHI).phi_flag.has_value());
+}
+
+// RTM Adoption_03
+TEST_CASE("the version IFE's attribute block carries is major << 8 | minor", "[Adoption_03]")
+{
+    STATIC_REQUIRE(I2S::kIfeAttributesVersion == (I2S::kVersionMajor << 8 | I2S::kVersionMinor));
+    STATIC_REQUIRE(I2S::kIfeAttributesVersion >> 8 == I2S::kVersionMajor);
+    STATIC_REQUIRE((I2S::kIfeAttributesVersion & 0xFF) == I2S::kVersionMinor);
+    // Zero is IFE's unversioned claim, read as free text: I2S never writes it.
+    STATIC_REQUIRE(I2S::kIfeAttributesVersion != 0);
 }

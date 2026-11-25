@@ -99,3 +99,18 @@ def test_a_key_constant_exists_only_in_namespace_attribute() -> None:
     spec = _spec()
     assert sorted(m.group(1) for m in names if m) == sorted(
         [k.name for k in spec.keys] + [k.short_name for k in spec.keys if k.short_name])
+
+
+def test_the_ife_attributes_version_follows_the_version_constants() -> None:
+    """IFE's ATTRIBUTES.VERSION carries the I2S version under METADATA_I2S as
+    major << 8 | minor (decided 2026-11-25); the header emits that packed value
+    once, so a writer never packs the two halves by hand."""
+    # RTM Adoption_03
+    lines = _header()
+    minor = _index(lines, r"^inline constexpr std::uint16_t kVersionMinor = ")
+    packed = _index(lines, r"\bkIfeAttributesVersion\b")
+    assert packed > minor
+    assert lines[packed] == (
+        "inline constexpr std::uint16_t kIfeAttributesVersion = "
+        "static_cast<std::uint16_t>(kVersionMajor << 8 | kVersionMinor);")
+    assert lines[packed - 1].startswith("///") and "major << 8 | minor" in " ".join(lines[minor + 1:packed])

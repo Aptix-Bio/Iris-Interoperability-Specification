@@ -183,3 +183,16 @@ def test_changed_absent_default_is_rejected() -> None:
         '{"absent_means_phi": true, "key": "DigitalImageIdentifierIsPHI"} -> '
         '{"absent_means_phi": false, "key": "DigitalImageIdentifierIsPHI"}'
     ]
+
+
+@pytest.mark.parametrize("part", ["major", "minor"])
+def test_a_version_that_does_not_pack_into_ife_is_rejected(part: str) -> None:
+    """IFE's ATTRIBUTES.VERSION holds major << 8 | minor in 16 bits, so each
+    half must fit a byte; 256 would carry into the major or out of the field."""
+    # RTM Adoption_03
+    header, keys, _ = _documents()
+    edited = copy.deepcopy(header)
+    assert isinstance(edited, dict) and isinstance(edited["version"], dict)
+    edited["version"][part] = 256
+    with pytest.raises(SpecError, match=f"header.version: {part} 256 does not fit"):
+        parse(edited, keys)
