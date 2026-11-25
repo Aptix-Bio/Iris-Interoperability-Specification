@@ -487,7 +487,7 @@ not define, under `METADATA_I2S`.
     type tests 28 of 28) and Iris-Slide's encoder ([2d1667b](https://github.com/Aptix-Bio/Iris-Slide/commit/2d1667b8f46696fecbce46e4a3125076757a7ee8),
     `ctest --preset debug` 4 of 4, `[Identity_07]` 29 of 29 assertions); the
     README's example (c) compiles with `-fsyntax-only -Wall -Wextra
-    -Wconversion` against I2S's headers and Iris-Headers at 9fa8a26
+    -Wconversion` against I2S's headers and Iris-Headers at 9fa8a26 [71588f5](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/commit/71588f514551375954d83b3e6cfdb43b865bc790)
 - [ ] **IrisSlideAllowlist_7.2** — Iris-Slide consumes the `i2s` CMake target
   by FetchContent at a pinned commit and uses `I2S::key_from_name` as its
   attribute allowlist; red: an encode with a key I2S does not define is
