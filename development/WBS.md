@@ -462,7 +462,9 @@ that prefix alone includes `<I2S.hpp>` and runs; the gates green. Committed to
     `i2s_install`)
 - [ ] **VERIFY:** the maintainer reads the first screen of `I2S.hpp` and builds
   against an install
-- [ ] **Gate:** CI green on pull request #1
+- [x] **Gate:** CI green on pull request #1: run 45651237245 on
+  `blacksmith-2vcpu-ubuntu-2404`, gates 20 of 20 (the two-unit link, the
+  missing-define link failure and the install pass under GCC)
 
 ## PythonAttributes_4 — the same vocabulary, typed in Python `todo` · needs TypedAttributes_3
 
