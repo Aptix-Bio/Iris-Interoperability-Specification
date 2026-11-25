@@ -14,12 +14,12 @@
 // C++ types each value type accepts are in detail/I2S_Concepts.hpp; the DICOM
 // text codec and every function body are in detail/I2S_Attributes_impl.hpp,
 // included at the end of this file.
-// RTM TypedKeys_01, Encoding_01, Adapter_01, Iteration_01, PhiFlag_02, ReadableHeaders_01, DicomSource_01, SingleHeader_01, SingleHeader_02
+// RTM TypedKeys_01, Encoding_01, Adapter_01, Iteration_01, PhiFlag_02, ReadableHeaders_01, DicomSource_01, SingleHeader_01, SingleHeader_02, Enumerated_01
 #ifndef I2S_ATTRIBUTES_HPP
 #define I2S_ATTRIBUTES_HPP
 
 #include "I2S_Keys.hpp"
-#include "detail/I2S_Concepts.hpp" // TextValue, TextListValue, DateTimeValue, IntegerValue, DecimalValue, BooleanValue, DicomLookup
+#include "detail/I2S_Concepts.hpp" // TextValue, TextListValue, DateTimeValue, IntegerValue, DecimalValue, BooleanValue, EnumeratedValue, DicomLookup
 
 // BEGIN I2S.hpp
 #include <array>
@@ -38,7 +38,8 @@ namespace I2S {
 /// A DATE_TIME value: a UTC time, at the microsecond precision a DT holds.
 using Time = std::chrono::sys_time<std::chrono::microseconds>;
 
-/// A value as its C++ type: one TEXT, several TEXT, DATE_TIME, INTEGER, DECIMAL, BOOLEAN.
+/// A value as its C++ type: one TEXT (or an ENUMERATED value's CS term), several TEXT,
+/// DATE_TIME, INTEGER, DECIMAL, BOOLEAN.
 using Value = std::variant<std::string, std::vector<std::string>, Time, std::int32_t, double, bool>;
 
 namespace detail {
@@ -46,7 +47,8 @@ template <Key K>
 struct ValueOfKey;
 } // namespace detail
 
-/// The C++ type key K's value reads as: std::string for Manufacturer, Time for ScanTime.
+/// The C++ type key K's value reads as: std::string for Manufacturer, Time for
+/// ScanTime, the key's generated enumeration for an ENUMERATED key (I2S::FocusMethod).
 template <Key K>
 using ValueOf = typename detail::ValueOfKey<K>::type;
 

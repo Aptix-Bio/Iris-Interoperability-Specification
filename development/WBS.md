@@ -50,7 +50,7 @@ flowchart LR
 | ReadableHeadersAndExamples_9 | `I2S_Keys.hpp` opens with the whole vocabulary, one line per key, spelled `I2S::Attribute::Manufacturer`; `I2S_Attributes.hpp` opens with the public declarations; the README shows writing attributes, reading them from a DICOM file, and writing them into an Iris slide | `doing` (in PR #1) |
 | InstalledSingleHeader_10 | a program includes only an installed `<I2S.hpp>`, whose first code is the `I2S::Attribute` constants with their full documentation, defines `I2S_IMPLEMENTATION` in one `.cpp`, and builds against `find_package(I2S)`; the gates green | `doing` (in PR #1) |
 | PythonAttributes_4 | `attributes[I2S.ScanTime] = datetime.now(timezone.utc)` type-checks under mypy --strict from generated stubs, a naive datetime is refused at run time, and `Attributes` iterates | `todo` |
-| VocabularyFromScanners_5 | the keys a scanner knows at scan time (scan date and time, optics, focus, burned-in annotation) generated and tested, each DICOM mapping verified | `todo` |
+| VocabularyFromScanners_5 | the keys a scanner knows at scan time (scan date and time, optics, focus, burned-in annotation) generated and tested, each DICOM mapping verified | `doing` (in PR #1; illumination type blocked on open question 10) |
 | IdentityClasses_6 | every key's identity class decided by the maintainer; no key left `UNDER_REVIEW` that a release depends on | `blocked` on the maintainer's answers (Open questions) |
 | IfeAndIrisSlideAdoption_7 | IFE's `METADATA_I2S` text points to I2S; Iris-Slide refuses an attribute key the generated header does not define | `todo`; EncoderTakesI2S_7.3 and IfeAttributesVersion_7.4 done ahead (Iris-Slide's encoder takes I2S's pairs; the header emits the packed version) |
 | Release_8 | a licence chosen, version 1.0 ratified, the repository public | `blocked` on the licence |
@@ -490,7 +490,7 @@ same DICOM text as the C++ adapter, checked by a shared round-trip corpus.
   for the same values
 - [ ] **VERIFY / Gate**
 
-## VocabularyFromScanners_5 — the scan-time vocabulary `todo` · needs SpecScaffold_1
+## VocabularyFromScanners_5 — the scan-time vocabulary `doing` · needs SpecScaffold_1
 
 Purpose: the scan-time facts named on 2026-11-24 (the accession identifier,
 stain, date and time of the scan, the scanner's identity down to its unique
@@ -565,7 +565,7 @@ The 2026-11-24 list, kept for the record:
   and a `code_sets` section had stain and fixative as their only users, and
   Decision_17 moved both to FHIR. The research is kept as
   `analysis/dicom_code_sets_2026-11-25.md`
-- [ ] **ScanTimeKeys_5.3** — the keys Decision_16 accepts that DICOM writes as
+- [x] **ScanTimeKeys_5.3** — the keys Decision_16 accepts that DICOM writes as
   one value: `BurnedInAnnotation` (0028,0301) and `ExtendedDepthOfField`
   (0048,0012), BOOLEAN; `ObjectiveLensNumericalAperture` (0048,0113), DECIMAL,
   in the items of the Optical Path Sequence (0048,0105); `FocusMethod`
@@ -575,7 +575,11 @@ The 2026-11-24 list, kept for the record:
   - [x] Red: `uv run pytest`, `test_the_scan_time_keys_carry_their_dicom_attributes`
     `KeyError: 'BurnedInAnnotation'`; the build of `keys_tests.cpp`: "no member
     named 'BurnedInAnnotation' in 'I2S::Key'"
-- [ ] **EnumeratedValues_5.4** — the value type `ENUMERATED` (Decision_18): a key
+  - [x] Green: `uv run pytest` 87 passed; `[ScanTimeKeys_01]` in
+    `i2s_keys_tests` (9 cases, 48 assertions) and `i2s_attributes_tests` (22
+    cases, 133 assertions), the four keys read from a DICOM data set as `bool`,
+    `double` and `I2S::FocusMethod`; `cmake --workflow --preset gates` 21 of 21
+- [x] **EnumeratedValues_5.4** — the value type `ENUMERATED` (Decision_18): a key
   lists its values, each a CS term that names a C++ enumerator; the header
   gives each such key a scoped enumeration right after namespace
   `I2S::Attribute` (`I2S::FocusMethod::AUTO`), `KeyInfo::values` and
@@ -585,6 +589,13 @@ The 2026-11-24 list, kept for the record:
   - [x] Red: `uv run pytest`, 15 failed, 72 passed (`KeyError: 'FocusMethod'`;
     `AttributeError: 'Key' object has no attribute 'values'`); the build of
     the C++ tests: "no member named 'FocusMethod' in 'I2S::Key'"
+  - [x] Green: `uv run pytest` 87 passed (`test_enumerated.py` 14,
+    `test_header.py` 6); `[Enumerated_01]` green; the new compile-fail case
+    `i2s_compile_fail_text_to_enumerated` passes on clang's `no viable
+    overloaded '='` … `'EnumeratedValue<const char (&)[5], (I2S::Key)10Ui16>'
+    evaluated to false`; `--validate` and `--check` clean after
+    `--refresh-witness` recorded 13 additions (the type, four keys, eight
+    `values` fields)
 - [ ] **IlluminationType_5.5** — blocked on open question 10: DICOM codes the
   illumination method as one or more items of the Illumination Type Code
   Sequence (0022,0016), inside the Optical Path Sequence, from the Extensible
@@ -816,3 +827,7 @@ Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintai
 - 2026-11-25 — Decision_17: the source of a fact decides its container; stain
   and fixative move to FHIR `Specimen.processing`, CodeSets_5.2 is dropped, and
   the research is kept as `analysis/dicom_code_sets_2026-11-25.md`.
+- 2026-11-25 — ScanTimeKeys_5.3 and EnumeratedValues_5.4: `BurnedInAnnotation`,
+  `ObjectiveLensNumericalAperture`, `FocusMethod`, `ExtendedDepthOfField`; the
+  value type `ENUMERATED` (Decision_18); the illumination type left for open
+  question 10.

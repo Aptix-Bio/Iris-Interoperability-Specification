@@ -7,8 +7,10 @@ in the JSON removes its enumerator and every use of the old name fails to
 compile. Both headers open with the keys: namespace I2S::Attribute, one
 constant per key with its full documentation block, is the first code after
 the includes, which is what a reader scrolls to and an IDE shows on hover.
+The scoped enumeration of each ENUMERATED key's values follows it, since a
+caller types it beside the key (I2S::FocusMethod::AUTO).
 """
-# RTM Generated_01, Generated_02, Generated_03, Generated_04, PhiFlag_01, PhiFlag_02, ReadableHeaders_02, SingleHeader_01
+# RTM Generated_01, Generated_02, Generated_03, Generated_04, PhiFlag_01, PhiFlag_02, ReadableHeaders_02, SingleHeader_01, Enumerated_01
 from __future__ import annotations
 
 import re
@@ -27,7 +29,7 @@ _BEGIN = "// BEGIN I2S.hpp"
 _END = "// END I2S.hpp"
 _INCLUDE = re.compile(r"^#include <[^>]+>$")
 _KEYS_INCLUDES = ("#include <array>", "#include <cstddef>", "#include <cstdint>", "#include <optional>",
-                  "#include <string_view>")
+                  "#include <span>", "#include <string_view>")
 
 
 def _banner(digest: str, sources: tuple[str, ...] = ()) -> str:
@@ -86,11 +88,12 @@ def _phi_flag(key: Key) -> str:
 
 def _row(key: Key) -> str:
     maximum = "std::nullopt" if key.multiplicity.maximum is None else str(key.multiplicity.maximum)
+    values = f"k{key.name}Values" if key.values else "{}"
     return (
         f"    KeyInfo{{Key::{key.name}, {_string(key.name)}, {_optional_string(key.short_name)},\n"
         f"            {_dicom(key)},\n"
         f"            ValueType::{key.value_type}, Vr::{key.vr}, Multiplicity{{{key.multiplicity.minimum}, {maximum}}}, "
-        f"IdentityClass::{key.identity},\n"
+        f"{values}, IdentityClass::{key.identity},\n"
         f"            {_phi_flag(key)}, {'true' if key.deprecated else 'false'}}},"
     )
 
@@ -112,9 +115,10 @@ def _doc_block(key: Key) -> list[str]:
         if key.dicom.sequence is not None:
             dicom += f", in {key.dicom.sequence.keyword} {key.dicom.sequence.tag} items"
     short = f" (short name {key.short_name})" if key.short_name else ""
+    listed = f" (I2S::{key.name}: {', '.join(v.name for v in key.values)})" if key.values else ""
     lines = [
         f"/// {key.name}{short}: {_comment(key.description)}",
-        f"/// Value type {key.value_type}, written as the DICOM VR {key.vr}, multiplicity {key.multiplicity.text}.",
+        f"/// Value type {key.value_type}{listed}, written as the DICOM VR {key.vr}, multiplicity {key.multiplicity.text}.",
         f"/// DICOM: {dicom}. Identity class: {key.identity}." + (" Deprecated." if key.deprecated else ""),
         f"inline constexpr TypedKey<Key::{key.name}> {key.name}{{}};",
     ]
@@ -124,13 +128,38 @@ def _doc_block(key: Key) -> list[str]:
     return lines
 
 
+def _enumeration(key: Key) -> str:
+    """The values a caller writes under an ENUMERATED key, one documented enumerator each."""
+    width = max(len(v.name) for v in key.values) + 1
+    rows = "\n".join(f"    {(v.name + ','):<{width}} ///< {_comment(v.description)}" for v in key.values)
+    return (f"/// The values of I2S::Attribute::{key.name}, each written as its CS term.\n"
+            f"enum class {key.name} : std::uint8_t {{\n{rows}\n}};")
+
+
+def _enumeration_tables(keys: tuple[Key, ...]) -> str:
+    """Each ENUMERATED key's CS terms, indexed by its enumeration, and the key
+    to enumeration map the attributes API types its writes with."""
+    parts = ["/// The enumeration an ENUMERATED key's value is written as; void for every other key.",
+             "template <Key K>", "struct EnumerationOf {", "    using type = void;", "};", ""]
+    for key in (k for k in keys if k.values):
+        terms = "\n".join(f"    {_string(v.name)}," for v in key.values)
+        parts += [f"inline constexpr std::array<std::string_view, {len(key.values)}> k{key.name}Values{{",
+                  terms, "};", "",
+                  f"[[nodiscard]] constexpr std::string_view name({key.name} value) noexcept", "{",
+                  f"    return k{key.name}Values[static_cast<std::size_t>(value)];", "}", "",
+                  "template <>", f"struct EnumerationOf<Key::{key.name}> {{", f"    using type = {key.name};", "};", ""]
+    return "\n".join(parts)
+
+
 def _vocabulary(keys: tuple[Key, ...]) -> str:
     """The keys, first: the Key enumeration (names only, so it stays a few
     lines) and TypedKey, which the constants are declared with, then namespace
-    I2S::Attribute, one documented constant per key."""
+    I2S::Attribute, one documented constant per key, then each ENUMERATED key's
+    values."""
     enumerators = "\n".join(textwrap.wrap(", ".join(k.name for k in keys) + ",", 96,
                                           initial_indent="    ", subsequent_indent="    "))
     constants = "\n".join(line for k in keys for line in _doc_block(k))
+    enumerations = "".join(f"\n\n{_enumeration(k)}" for k in keys if k.values)
     return f"""/// Every key, in the order the specification defines them. Each is
 /// documented on its constant in namespace I2S::Attribute, below.
 enum class Key : std::uint16_t {{
@@ -149,7 +178,7 @@ namespace Attribute {{
 
 {constants}
 
-}} // namespace Attribute"""
+}} // namespace Attribute{enumerations}"""
 
 
 def _keys_body(spec: Spec) -> str:
@@ -163,7 +192,8 @@ def _keys_body(spec: Spec) -> str:
 
 // =============================================================================
 // The version, and the tables behind the vocabulary: VRs, value types,
-// identity classes, each key's facts (kKeys), and the lookups over them.
+// identity classes, listed values, each key's facts (kKeys), and the lookups
+// over them.
 // =============================================================================
 
 /// The version of the {spec.name} this header was generated from.
@@ -237,6 +267,7 @@ struct PhiFlag {{
     bool absent_means_phi;
 }};
 
+{_enumeration_tables(spec.keys)}
 struct KeyInfo {{
     Key key;
     std::string_view name;
@@ -246,6 +277,8 @@ struct KeyInfo {{
     ValueType value_type;
     Vr vr;
     Multiplicity multiplicity;
+    /// An ENUMERATED key's CS terms, indexed by its enumeration; empty for every other key.
+    std::span<const std::string_view> values;
     IdentityClass identity;
     /// std::nullopt where no flag qualifies the key's identity class per file.
     std::optional<PhiFlag> phi_flag;

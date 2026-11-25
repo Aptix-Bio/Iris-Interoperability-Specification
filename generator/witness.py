@@ -1,7 +1,7 @@
 """The witness: every fact of the specification a consumer depends on.
 
 A key's name, version, short name, DICOM counterpart, value type, multiplicity,
-identity class, PHI flag (with its absent default) and whether it is
+listed values (their terms, in order), identity class, PHI flag (with its absent default) and whether it is
 deprecated are what a writer puts in a file and a reader looks up, so
 each is witnessed. Descriptions, notes and verification sources are not: they
 may be clarified without changing what any file means.
@@ -10,7 +10,7 @@ The committed copy (tests/witness/witness.json) is the baseline the
 append-only gate compares against; witness_hash() goes into every generated
 file's banner so --check can tell whether a file came from the current spec.
 """
-# RTM AppendOnly_01, PhiFlag_02
+# RTM AppendOnly_01, PhiFlag_02, Enumerated_01
 from __future__ import annotations
 
 import hashlib
@@ -36,6 +36,7 @@ def witness(spec: Spec) -> dict[str, Json]:
             "value_type": key.value_type,
             "vr": key.vr,
             "multiplicity": key.multiplicity.text,
+            "values": [v.name for v in key.values] if key.values else None,
             "identity": key.identity,
             "deprecated": key.deprecated is not None,
             "phi_flag": None if key.phi_flag is None else {

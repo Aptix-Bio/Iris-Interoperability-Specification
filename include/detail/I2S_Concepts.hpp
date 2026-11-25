@@ -4,7 +4,7 @@
 // refused value's compiler note names the concept it failed. The lines between
 // the BEGIN and END markers are copied into the generated I2S.hpp ahead of the
 // public declarations.
-// RTM TypedKeys_01, ReadableHeaders_01, DicomSource_01, SingleHeader_01
+// RTM TypedKeys_01, ReadableHeaders_01, DicomSource_01, SingleHeader_01, Enumerated_01
 #ifndef I2S_DETAIL_CONCEPTS_HPP
 #define I2S_DETAIL_CONCEPTS_HPP
 
@@ -73,6 +73,12 @@ concept DecimalValue = std::same_as<std::remove_cvref_t<T>, double> || std::same
 template <class T>
 concept BooleanValue = std::same_as<std::remove_cvref_t<T>, bool>;
 
+/// Key K's generated enumeration (I2S::FocusMethod for FocusMethod), and
+/// nothing that converts to it: no text, no number, no other enumeration.
+template <class T, Key K>
+concept EnumeratedValue = std::is_enum_v<typename EnumerationOf<K>::type> &&
+                          std::same_as<std::remove_cvref_t<T>, typename EnumerationOf<K>::type>;
+
 /// A DICOM data set as Attributes::from_dicom reads it: called with a DICOM
 /// tag, it returns that attribute's value as DICOM text, or std::nullopt when
 /// the data set does not carry it.
@@ -87,7 +93,8 @@ concept Assignable = (kType<K> == ValueType::TEXT && (TextValue<T> || (kMany<K> 
                      (kType<K> == ValueType::DATE_TIME && DateTimeValue<T>) ||
                      (kType<K> == ValueType::INTEGER && IntegerValue<T>) ||
                      (kType<K> == ValueType::DECIMAL && DecimalValue<T>) ||
-                     (kType<K> == ValueType::BOOLEAN && BooleanValue<T>);
+                     (kType<K> == ValueType::BOOLEAN && BooleanValue<T>) ||
+                     (kType<K> == ValueType::ENUMERATED && EnumeratedValue<T, K>);
 
 } // namespace detail
 

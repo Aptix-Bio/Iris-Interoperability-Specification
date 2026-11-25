@@ -18,7 +18,25 @@
       "short_name": "ScanTime",
       "since": "0.1",
       "value_type": "DATE_TIME",
+      "values": null,
       "vr": "DT"
+    },
+    "BurnedInAnnotation": {
+      "deprecated": false,
+      "dicom": {
+        "keyword": "BurnedInAnnotation",
+        "sequence": null,
+        "tag": "(0028,0301)",
+        "vr": "CS"
+      },
+      "identity": "NONE",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "BOOLEAN",
+      "values": null,
+      "vr": "CS"
     },
     "DeviceSerialNumber": {
       "deprecated": false,
@@ -34,6 +52,7 @@
       "short_name": null,
       "since": "0.1",
       "value_type": "TEXT",
+      "values": null,
       "vr": "LO"
     },
     "DigitalImageIdentifier": {
@@ -48,6 +67,7 @@
       "short_name": "DII",
       "since": "0.1",
       "value_type": "TEXT",
+      "values": null,
       "vr": "LO"
     },
     "DigitalImageIdentifierIsPHI": {
@@ -59,6 +79,44 @@
       "short_name": "DII_is_PHI",
       "since": "0.1",
       "value_type": "BOOLEAN",
+      "values": null,
+      "vr": "CS"
+    },
+    "ExtendedDepthOfField": {
+      "deprecated": false,
+      "dicom": {
+        "keyword": "ExtendedDepthOfField",
+        "sequence": null,
+        "tag": "(0048,0012)",
+        "vr": "CS"
+      },
+      "identity": "NONE",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "BOOLEAN",
+      "values": null,
+      "vr": "CS"
+    },
+    "FocusMethod": {
+      "deprecated": false,
+      "dicom": {
+        "keyword": "FocusMethod",
+        "sequence": null,
+        "tag": "(0048,0011)",
+        "vr": "CS"
+      },
+      "identity": "NONE",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "ENUMERATED",
+      "values": [
+        "AUTO",
+        "MANUAL"
+      ],
       "vr": "CS"
     },
     "Manufacturer": {
@@ -75,6 +133,7 @@
       "short_name": null,
       "since": "0.1",
       "value_type": "TEXT",
+      "values": null,
       "vr": "LO"
     },
     "ManufacturerModelName": {
@@ -91,7 +150,28 @@
       "short_name": null,
       "since": "0.1",
       "value_type": "TEXT",
+      "values": null,
       "vr": "LO"
+    },
+    "ObjectiveLensNumericalAperture": {
+      "deprecated": false,
+      "dicom": {
+        "keyword": "ObjectiveLensNumericalAperture",
+        "sequence": {
+          "keyword": "OpticalPathSequence",
+          "tag": "(0048,0105)"
+        },
+        "tag": "(0048,0113)",
+        "vr": "DS"
+      },
+      "identity": "NONE",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "DECIMAL",
+      "values": null,
+      "vr": "DS"
     },
     "SoftwareVersions": {
       "deprecated": false,
@@ -107,6 +187,7 @@
       "short_name": null,
       "since": "0.1",
       "value_type": "TEXT",
+      "values": null,
       "vr": "LO"
     },
     "UniqueDeviceIdentifier": {
@@ -126,6 +207,7 @@
       "short_name": null,
       "since": "0.1",
       "value_type": "TEXT",
+      "values": null,
       "vr": "UT"
     }
   },
@@ -189,6 +271,7 @@
     "BOOLEAN": "0.1",
     "DATE_TIME": "0.1",
     "DECIMAL": "0.1",
+    "ENUMERATED": "0.1",
     "INTEGER": "0.1",
     "TEXT": "0.1"
   }

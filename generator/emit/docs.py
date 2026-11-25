@@ -17,7 +17,7 @@ Every file but attributes.adoc opens with a //// DO-NOT-EDIT banner carrying
 the witness hash; attributes.adoc carries it as // line comments, since a
 block comment would end the document header.
 """
-# RTM Document_02
+# RTM Document_02, Enumerated_01
 from __future__ import annotations
 
 from ..model import Key, Member, Spec, ValueRepresentation
@@ -117,6 +117,8 @@ def _key_sections(spec: Spec, digest: str) -> str:
         lines += [f"Short name:: {f'`{k.short_name}`' if k.short_name else 'none'}"]
         lines += [f"DICOM:: {_dicom(k)}"]
         lines += [f"Value type:: `{k.value_type}`, written as the DICOM VR `{k.vr}`, multiplicity {k.multiplicity.text}"]
+        if k.values:
+            lines += ["Values:: " + "; ".join(f"`{v.name}`: {_cell(v.description)}" for v in k.values)]
         lines += [f"Identity class:: `{k.identity}`"]
         if k.identity_note is not None:
             lines += [f"Identity note:: {k.identity_note}"]

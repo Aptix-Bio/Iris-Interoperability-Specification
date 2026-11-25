@@ -9,7 +9,8 @@ has to mean the same thing forever. Read `README.md`, this page and
 1. **Append-only.** A key, value type or identity class in `spec/*.json`
    is never removed, renamed, retyped or re-mapped: its name, version group,
    short name, DICOM counterpart, value type, multiplicity and PHI flag are
-   fixed once committed. New facts arrive by addition: a new key at the end of
+   fixed once committed. An `ENUMERATED` key's values may be added to at the
+   end; a value is never removed, renamed or moved. New facts arrive by addition: a new key at the end of
    the current draft version's group, or a new version group. A key is retired
    by setting `deprecated` to the reason, and stays defined so that files
    written with it can still be read.
@@ -60,6 +61,7 @@ four sections, each grouped by the version that introduced its members
 | `value_type` | a member of `value_types` |
 | `vr` | the VR the value is written as: one of its value type's `vrs`, and the DICOM attribute's VR where the key has one |
 | `multiplicity` | how many values: `1`, `1-3`, or `1-n` for no upper bound; more than one only for a `TEXT` key whose VR allows several values |
+| `values` | for an `ENUMERATED` key, the values it may hold, in order: each a CS term that also names a C++ enumerator (an upper-case letter, then upper-case letters, digits and underscores, at most 16 bytes) with its `description`; `null` for every other key |
 | `identity` | a member of `identity_classes` |
 | `identity_note` | the open question, present exactly when `identity` is `UNDER_REVIEW` |
 | `phi_flag` | the `BOOLEAN` key that states per file whether this key's value is protected health information, with `absent_means_phi`: what a reader and a de-identifier assume when the flag is absent; or `null` |

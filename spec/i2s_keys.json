@@ -4,7 +4,7 @@
     "i2s_version": {
       "0.1": {
         "CS": {
-          "description": "Code String: upper-case letters, digits 0-9, the space and the underscore of the default repertoire; leading and trailing spaces are not significant. I2S writes a BOOLEAN as the CS values YES and NO, as DICOM's Burned In Annotation (0028,0301) does.",
+          "description": "Code String: upper-case letters, digits 0-9, the space and the underscore of the default repertoire; leading and trailing spaces are not significant. I2S writes a BOOLEAN as the CS values YES and NO, as DICOM's Burned In Annotation (0028,0301) does, and an ENUMERATED value as the CS term its key lists.",
           "max_length": 16,
           "length_unit": "bytes",
           "multiple_values": true,
@@ -169,6 +169,12 @@
           "vrs": [
             "CS"
           ]
+        },
+        "ENUMERATED": {
+          "description": "One of the values its key lists, written as that value's CS term; text outside the list is refused. A key's values are append-only.",
+          "vrs": [
+            "CS"
+          ]
         }
       }
     }
@@ -196,6 +202,7 @@
           "value_type": "TEXT",
           "vr": "LO",
           "multiplicity": "1",
+          "values": null,
           "identity": "UNDER_REVIEW",
           "identity_note": "The DII is derived from the laboratory's accession number. Whether an accession-derived identifier identifies an individual in general is an open question for the maintainer, with research under way; for each file, its companion DigitalImageIdentifierIsPHI (DII_is_PHI) carries the answer.",
           "phi_flag": {
@@ -211,6 +218,7 @@
           "value_type": "BOOLEAN",
           "vr": "CS",
           "multiplicity": "1",
+          "values": null,
           "identity": "NONE",
           "identity_note": null,
           "phi_flag": null,
@@ -240,6 +248,7 @@
           "value_type": "TEXT",
           "vr": "LO",
           "multiplicity": "1",
+          "values": null,
           "identity": "NONE",
           "identity_note": null,
           "phi_flag": null,
@@ -269,6 +278,7 @@
           "value_type": "TEXT",
           "vr": "LO",
           "multiplicity": "1",
+          "values": null,
           "identity": "NONE",
           "identity_note": null,
           "phi_flag": null,
@@ -298,6 +308,7 @@
           "value_type": "TEXT",
           "vr": "LO",
           "multiplicity": "1",
+          "values": null,
           "identity": "UNDER_REVIEW",
           "identity_note": "The serial number identifies one scanner. DICOM PS3.15 Annex E's Basic Application Level Confidentiality Profile removes it unless the Retain Device Identity Option is used (Table E.1-1, 2026e), and the HIPAA Safe Harbor list names \"Device identifiers and serial numbers\" (45 CFR 164.514(b)(2)(i)(M)); both treat a device instance as a possible link to the people it served, while neither says a scanner identifies a person. Whether it stays in I2S as identifying no individual is an open question for the maintainer (research read 2026-11-24).",
           "phi_flag": null,
@@ -327,6 +338,7 @@
           "value_type": "TEXT",
           "vr": "LO",
           "multiplicity": "1-n",
+          "values": null,
           "identity": "NONE",
           "identity_note": null,
           "phi_flag": null,
@@ -364,6 +376,7 @@
           "value_type": "TEXT",
           "vr": "UT",
           "multiplicity": "1",
+          "values": null,
           "identity": "UNDER_REVIEW",
           "identity_note": "Its device identifier part names a model, shared by every unit, but its production identifier part may carry the unit's serial number (21 CFR 830.3). DICOM PS3.15 Annex E's Basic Application Level Confidentiality Profile removes it unless the Retain Device Identity Option is used (Table E.1-1, 2026e), and the HIPAA Safe Harbor list names \"Device identifiers and serial numbers\" (45 CFR 164.514(b)(2)(i)(M)); both treat a device instance as a possible link to the people it served, while neither says a scanner identifies a person. Whether it stays in I2S as identifying no individual is an open question for the maintainer (research read 2026-11-24).",
           "phi_flag": null,
@@ -393,11 +406,142 @@
           "value_type": "DATE_TIME",
           "vr": "DT",
           "multiplicity": "1",
+          "values": null,
           "identity": "UNDER_REVIEW",
           "identity_note": "The time the slide was scanned. The HIPAA Safe Harbor list names all elements of dates, except the year, for dates directly related to an individual (45 CFR 164.514(b)(2)(i)(C)), and DICOM PS3.15's Basic Application Level Confidentiality Profile removes, empties or replaces Acquisition DateTime (action X/Z/D) unless the Retain Longitudinal Temporal Information Full Dates Option keeps it or the Modified Dates Option shifts it (PS3.15 2026e Table E.1-1, read 2026-11-24 at https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_E.html). A scan time is a fact of the slide, but it lies close to the dates of the patient's procedure. Whether it stays in I2S unchanged, coarsened or shifted is an open question for the maintainer.",
           "phi_flag": null,
           "deprecated": null,
           "description": "The date and time the acquisition of the slide's image started, with its UTC offset. A scanner writes it once, when the scan begins."
+        },
+        "BurnedInAnnotation": {
+          "short_name": null,
+          "dicom": {
+            "keyword": "BurnedInAnnotation",
+            "tag": "0028,0301",
+            "vr": "CS",
+            "sequence": null,
+            "verified": [
+              {
+                "title": "DICOM PS3.6 2026e, 6 Registry of DICOM Data Elements",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part06/chapter_6.html",
+                "read": "2026-11-25"
+              },
+              {
+                "title": "DICOM PS3.3 2026e, C.8.12.4 Whole Slide Microscopy Image Module",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.8.12.4.html",
+                "read": "2026-11-25"
+              }
+            ]
+          },
+          "value_type": "BOOLEAN",
+          "vr": "CS",
+          "multiplicity": "1",
+          "values": null,
+          "identity": "NONE",
+          "identity_note": null,
+          "phi_flag": null,
+          "deprecated": null,
+          "description": "Whether the slide's images carry enough burned-in annotation to identify the patient: YES when any image's pixels, such as a label or overview image that shows the slide's label, carry identifying text. DICOM states it per image in the Whole Slide Microscopy Image Module, where a label that shows only a specimen identifier may be NO; I2S carries one value for the slide file. It says whether the pixels identify someone; its own value identifies no one."
+        },
+        "ObjectiveLensNumericalAperture": {
+          "short_name": null,
+          "dicom": {
+            "keyword": "ObjectiveLensNumericalAperture",
+            "tag": "0048,0113",
+            "vr": "DS",
+            "sequence": {
+              "keyword": "OpticalPathSequence",
+              "tag": "0048,0105"
+            },
+            "verified": [
+              {
+                "title": "DICOM PS3.6 2026e, 6 Registry of DICOM Data Elements",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part06/chapter_6.html",
+                "read": "2026-11-25"
+              },
+              {
+                "title": "DICOM PS3.3 2026e, C.8.12.5 Optical Path Module",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.8.12.5.html",
+                "read": "2026-11-25"
+              }
+            ]
+          },
+          "value_type": "DECIMAL",
+          "vr": "DS",
+          "multiplicity": "1",
+          "values": null,
+          "identity": "NONE",
+          "identity_note": null,
+          "phi_flag": null,
+          "deprecated": null,
+          "description": "The nominal numerical aperture of the objective lens the slide was scanned through. DICOM records it in each item of the Optical Path Module's Optical Path Sequence, one item per optical path; I2S carries one value, the first item's when a DICOM file lists several."
+        },
+        "FocusMethod": {
+          "short_name": null,
+          "dicom": {
+            "keyword": "FocusMethod",
+            "tag": "0048,0011",
+            "vr": "CS",
+            "sequence": null,
+            "verified": [
+              {
+                "title": "DICOM PS3.6 2026e, 6 Registry of DICOM Data Elements",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part06/chapter_6.html",
+                "read": "2026-11-25"
+              },
+              {
+                "title": "DICOM PS3.3 2026e, C.8.12.4 Whole Slide Microscopy Image Module",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.8.12.4.html",
+                "read": "2026-11-25"
+              }
+            ]
+          },
+          "value_type": "ENUMERATED",
+          "vr": "CS",
+          "multiplicity": "1",
+          "values": {
+            "AUTO": {
+              "description": "Autofocus."
+            },
+            "MANUAL": {
+              "description": "Focus that includes any human adjustment or verification of the autofocus."
+            }
+          },
+          "identity": "NONE",
+          "identity_note": null,
+          "phi_flag": null,
+          "deprecated": null,
+          "description": "How the scanner focused the slide's images, as DICOM's Whole Slide Microscopy Image Module states it with its Enumerated Values AUTO and MANUAL."
+        },
+        "ExtendedDepthOfField": {
+          "short_name": null,
+          "dicom": {
+            "keyword": "ExtendedDepthOfField",
+            "tag": "0048,0012",
+            "vr": "CS",
+            "sequence": null,
+            "verified": [
+              {
+                "title": "DICOM PS3.6 2026e, 6 Registry of DICOM Data Elements",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part06/chapter_6.html",
+                "read": "2026-11-25"
+              },
+              {
+                "title": "DICOM PS3.3 2026e, C.8.12.4 Whole Slide Microscopy Image Module",
+                "url": "https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.8.12.4.html",
+                "read": "2026-11-25"
+              }
+            ]
+          },
+          "value_type": "BOOLEAN",
+          "vr": "CS",
+          "multiplicity": "1",
+          "values": null,
+          "identity": "NONE",
+          "identity_note": null,
+          "phi_flag": null,
+          "deprecated": null,
+          "description": "Whether the image pixels were created by combining acquisitions at several focal planes into one (focus stacking), as DICOM's Whole Slide Microscopy Image Module states it."
         }
       }
     }

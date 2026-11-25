@@ -69,9 +69,12 @@ I2S::Attributes attributes;
 attributes[I2S::Attribute::Manufacturer]          = "Leica";
 attributes[I2S::Attribute::ManufacturerModelName] = "GT450";
 attributes[I2S::Attribute::ScanTime]              = std::chrono::system_clock::now();
+attributes[I2S::Attribute::FocusMethod]           = I2S::FocusMethod::AUTO;
 ```
 
-Each value is held as the text of its DICOM value representation (VR).
+Each value is held as the text of its DICOM value representation (VR). A key
+with a closed list of values, such as `FocusMethod`, takes the enumeration
+generated for it and is written as the value's DICOM term (`AUTO`).
 
 ## Writing attributes from a DICOM file
 

@@ -11,7 +11,7 @@ sees a half-valid spec.
 The *_FIELDS tuples are the schema: the fields each object may hold, in the
 order the canonical form writes them (validate.canonical).
 """
-# RTM Schema_01, UniqueNames_01, PhiFlag_01, Lint_02, Lint_03, Lint_04, Lint_05, Lint_06
+# RTM Schema_01, UniqueNames_01, PhiFlag_01, Lint_02, Lint_03, Lint_04, Lint_05, Lint_06, Enumerated_01
 from __future__ import annotations
 
 import re
@@ -30,6 +30,8 @@ KEYS_FILE = "spec/i2s_keys.json"
 UNDER_REVIEW = "UNDER_REVIEW"
 # The value type a PHI flag must have.
 BOOLEAN = "BOOLEAN"
+# The value type whose keys list their values (Decision_18), and the only one.
+ENUMERATED = "ENUMERATED"
 DRAFT = "draft"
 RATIFIED = "ratified"
 
@@ -43,8 +45,9 @@ SECTION_FIELDS = ("description", "i2s_version")
 VR_FIELDS = ("description", "max_length", "length_unit", "multiple_values", "example", "verified")
 VALUE_TYPE_FIELDS = ("description", "vrs")
 IDENTITY_CLASS_FIELDS = ("description",)
-KEY_FIELDS = ("short_name", "dicom", "value_type", "vr", "multiplicity", "identity",
+KEY_FIELDS = ("short_name", "dicom", "value_type", "vr", "multiplicity", "values", "identity",
               "identity_note", "phi_flag", "deprecated", "description")
+LISTED_VALUE_FIELDS = ("description",)
 DICOM_FIELDS = ("keyword", "tag", "vr", "sequence", "verified")
 SEQUENCE_FIELDS = ("keyword", "tag")
 VERIFIED_FIELDS = ("title", "url", "read")
@@ -62,13 +65,17 @@ _DT = re.compile(r"([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})(
 _DS = re.compile(r"[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]+)?")
 _IS = re.compile(r"[+-]?[0-9]+")
 _CS = re.compile(r"[A-Z0-9 _]+")
+# A listed value is written as a CS and named as a C++ enumerator, so it is
+# the CS repertoire less the space, starting with a letter.
+_CS_TERM = re.compile(r"[A-Z][A-Z0-9_]*")
 TEXT = "TEXT"
 # Names the generated and hand-written C++ already declare in namespace I2S.
 # Every key and short name becomes a constant in I2S::Attribute, whose lines
 # name Key and TypedKey unqualified, so a key named like one of these would
 # shadow it there; the whole set stays reserved so a key never reads as API.
 RESERVED_NAMES = frozenset({
-    "Attributes", "DicomAttribute", "DicomSequence", "DicomTag", "Element", "Error", "IdentityClass", "Key",
+    "Attributes", "DicomAttribute", "DicomSequence", "DicomTag", "Element", "EnumerationOf", "Error",
+    "IdentityClass", "Key",
     "KeyInfo", "Multiplicity", "Pair", "PhiFlag", "Result", "Slot", "Time", "TypedKey", "Value", "ValueOf",
     "ValueType", "Vr", "VrInfo", "decode", "encode", "info", "key_from_name", "name",
 })
@@ -163,6 +170,13 @@ class PhiFlag:
 
 
 @dataclass(frozen=True)
+class ListedValue:
+    """One value an ENUMERATED key may hold: its CS term, which is also its C++ enumerator."""
+    name: str
+    description: str
+
+
+@dataclass(frozen=True)
 class Key:
     name: str
     since: Version
@@ -171,6 +185,7 @@ class Key:
     value_type: str
     vr: str
     multiplicity: Multiplicity
+    values: tuple[ListedValue, ...]  # empty unless value_type is ENUMERATED
     identity: str
     identity_note: str | None
     phi_flag: PhiFlag | None
@@ -469,6 +484,28 @@ def _multiplicity(text: str, where: str) -> Multiplicity:
     return Multiplicity(minimum, maximum, text)
 
 
+def _values(value: Json, name: str, value_type: str, cs: ValueRepresentation, where: str) -> tuple[ListedValue, ...]:
+    """An ENUMERATED key's values, in document order (the C++ enumeration's
+    order); every other key has none. A value listed twice is refused by the
+    loader, which refuses any name repeated in one JSON object."""
+    if value_type != ENUMERATED:
+        if value is not None:
+            raise SpecError(f"{where}: only an {ENUMERATED} key lists values; {name} is {value_type}")
+        return ()
+    if not isinstance(value, dict) or not value:
+        raise SpecError(f"{where}: an {ENUMERATED} key lists its values, found {value!r}")
+    out: list[ListedValue] = []
+    for term, raw in value.items():
+        if _CS_TERM.fullmatch(term) is None or length(term, cs.length_unit) > cs.max_length:
+            raise SpecError(f"{where}: {term!r} is not a CS term that names a C++ enumerator: an upper-case "
+                            f"letter, then upper-case letters, digits and underscores, at most {cs.max_length} "
+                            f"{cs.length_unit}")
+        entry = _object(raw, f"{where}.{term}")
+        _only(entry, LISTED_VALUE_FIELDS, f"{where}.{term}")
+        out.append(ListedValue(term, _text(entry, "description", f"{where}.{term}")))
+    return tuple(out)
+
+
 def _or(names: tuple[str, ...]) -> str:
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " or " + names[-1]
 
@@ -502,6 +539,7 @@ def _key(name: str, since: Version, entry: dict[str, Json],
             raise SpecError(f"{where}.multiplicity: {vr} holds a single value, so {multiplicity.text!r} is not possible")
         if value_type != TEXT:
             raise SpecError(f"{where}.multiplicity: only {TEXT} keys may hold several values in this version")
+    values = _values(_field(entry, "values", where), name, value_type, vrs[vr], f"{where}.values")
     identity = _text(entry, "identity", where)
     if identity not in identity_classes:
         raise SpecError(f"{where}.identity: unknown identity class {identity!r}")
@@ -516,6 +554,7 @@ def _key(name: str, since: Version, entry: dict[str, Json],
         value_type=value_type,
         vr=vr,
         multiplicity=multiplicity,
+        values=values,
         identity=identity,
         identity_note=identity_note,
         phi_flag=_phi_flag(_field(entry, "phi_flag", where), f"{where}.phi_flag"),

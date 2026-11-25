@@ -13,7 +13,7 @@
 // the non-template function bodies, under #ifdef I2S_IMPLEMENTATION, are
 // compiled only in the one .cpp that defines it, so each has one definition
 // in the program and the header stays cheap to include everywhere else.
-// RTM TypedKeys_01, Encoding_01, Adapter_01, Iteration_01, PhiFlag_02, ReadableHeaders_01, DicomSource_01, SingleHeader_02
+// RTM TypedKeys_01, Encoding_01, Adapter_01, Iteration_01, PhiFlag_02, ReadableHeaders_01, DicomSource_01, SingleHeader_02, Enumerated_01
 #ifndef I2S_DETAIL_ATTRIBUTES_IMPL_HPP
 #define I2S_DETAIL_ATTRIBUTES_IMPL_HPP
 
@@ -22,6 +22,7 @@
 #endif
 
 // BEGIN I2S.hpp
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <chrono>
@@ -39,6 +40,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -111,7 +113,7 @@ struct ValueOfImpl<ValueType::BOOLEAN, false> {
 };
 
 template <Key K>
-struct ValueOfKey : ValueOfImpl<kType<K>, kMany<K>> {};
+struct ValueOfKey : std::conditional_t<kType<K> == ValueType::ENUMERATED, EnumerationOf<K>, ValueOfImpl<kType<K>, kMany<K>>> {};
 
 /// The text of a typed value under key K's VR; throws CodecError.
 template <Key K, class T>
@@ -140,6 +142,13 @@ std::string encode(T&& value)
         return encode_date_time(std::chrono::floor<std::chrono::microseconds>(value)).value();
     } else if constexpr (kType<K> == ValueType::INTEGER) {
         return encode_integer(static_cast<std::int32_t>(value)).value();
+    } else if constexpr (kType<K> == ValueType::ENUMERATED) {
+        // A cast can put a number in the enumeration that names no value.
+        const auto index = static_cast<std::size_t>(value);
+        if (index >= info(K).values.size()) {
+            refuse(std::to_string(index) + " is not one of the key's " + std::to_string(info(K).values.size()) + " values");
+        }
+        return std::string(info(K).values[index]);
     } else if constexpr (kType<K> == ValueType::DECIMAL) {
         const Result<std::string> text = encode_decimal(static_cast<double>(value));
         if (!text.has_value()) {
@@ -298,6 +307,13 @@ public:
         static_cast<void>(_owner.set(TypedKey<K>{}, std::forward<T>(value)));
     }
 
+    template <class T>
+        requires(detail::kType<K> == ValueType::ENUMERATED) && EnumeratedValue<T, K>
+    void operator=(T&& value) noexcept
+    {
+        static_cast<void>(_owner.set(TypedKey<K>{}, std::forward<T>(value)));
+    }
+
 private:
     Attributes& _owner;
 };
@@ -355,7 +371,13 @@ std::optional<ValueOf<K>> Attributes::get(TypedKey<K>) const noexcept
     if (!stored) {
         return std::nullopt;
     }
-    return std::get<ValueOf<K>>(Element{K, *stored}.value());
+    if constexpr (detail::kType<K> == ValueType::ENUMERATED) {
+        // The text was checked against the key's values when it was stored.
+        const auto& values = info(K).values;
+        return static_cast<ValueOf<K>>(std::ranges::find(values, *stored) - values.begin());
+    } else {
+        return std::get<ValueOf<K>>(Element{K, *stored}.value());
+    }
 }
 
 // --- is_phi --------------------------------------------------------------------------
@@ -573,6 +595,19 @@ bool parse_cs_boolean(std::string_view raw)
     refuse(quoted(raw) + " is not YES or NO");
 }
 
+/// An ENUMERATED key's value is one of the CS terms the key lists.
+void check_listed(const KeyInfo& row, std::string_view value)
+{
+    if (std::ranges::find(row.values, value) != row.values.end()) {
+        return;
+    }
+    std::string listed;
+    for (const std::string_view term : row.values) {
+        listed += (listed.empty() ? "" : ", ") + std::string(term);
+    }
+    refuse("it is not one of the key's values: " + listed);
+}
+
 std::vector<std::string_view> split(std::string_view text)
 {
     std::vector<std::string_view> values;
@@ -740,6 +775,7 @@ Value Element::value() const
     case ValueType::DECIMAL: return decode_decimal(_text).value();
     case ValueType::INTEGER: return decode_integer(_text).value();
     case ValueType::BOOLEAN: return decode_boolean(_text).value();
+    case ValueType::ENUMERATED: return std::string(_text);
     }
     throw std::logic_error("I2S::Element::value(): a ValueType outside the generated enumeration");
 }
@@ -833,6 +869,9 @@ Result<std::monostate> Attributes::check_pair(Key key, std::string_view text) no
             detail::check_lexical(row.vr, value);
             if (row.value_type == ValueType::BOOLEAN) {
                 detail::parse_cs_boolean(value);
+            }
+            if (row.value_type == ValueType::ENUMERATED) {
+                detail::check_listed(row, value);
             }
         }
         if (values.size() < row.multiplicity.minimum || (row.multiplicity.maximum && values.size() > *row.multiplicity.maximum)) {

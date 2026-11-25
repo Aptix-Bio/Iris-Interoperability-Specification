@@ -140,6 +140,12 @@ values joins them with the backslash, DICOM's value delimiter; only the string
 VRs that allow it hold several values, and in this version only `TEXT` keys
 do.
 
+An `ENUMERATED` key lists the values it may hold, in its key section; each is
+a CS term, and a value is written as its term. A reader and a writer *shall*
+refuse any other text for the key. Where the key has a DICOM counterpart, its
+values are that attribute's Enumerated Values, so the text is the same in
+both.
+
 == Keys
 
 include::{generated}/keys_table.adoc[]
@@ -156,7 +162,8 @@ name, DICOM counterpart, multiplicity or PHI flag changes. A key is retired by
 marking it deprecated, with the reason; it stays defined so that files
 written with it can still be read, and a deprecated key is never restored.
 The one fact that may change is the identity class of an `UNDER_REVIEW` key,
-which exists to be decided.
+which exists to be decided. An `ENUMERATED` key's list of values may grow: a
+value is added at the end and is never removed, renamed or moved.
 
 These rules are checked mechanically. The generator compares the
 specification with a committed record of every published fact and refuses any

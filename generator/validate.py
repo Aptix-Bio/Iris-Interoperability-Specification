@@ -6,7 +6,9 @@ disappears; retirement is by `deprecated`, which may be set and never cleared.
 Additions pass, reported as notes so --check can insist the baseline records
 them, but only under the current version, and never while it is ratified. The
 one other fact allowed to change is the identity class of a key the baseline
-holds as UNDER_REVIEW: that class exists to be decided.
+holds as UNDER_REVIEW: that class exists to be decided. An ENUMERATED key's
+values may grow at the end, each new value an addition; a value removed is
+refused by name, and a value moved changes the list, which is refused.
 
 The canonical form is the one text each spec document may have: two-space
 indent, a trailing newline, UTF-8 written as itself, and every object's fields
@@ -15,7 +17,7 @@ document's top level (its `// MARK` comments head the section after them),
 members in document order (the C++ enumeration order), and version groups in
 version order.
 """
-# RTM AppendOnly_01, AppendOnly_02, Lint_01, Lint_05
+# RTM AppendOnly_01, AppendOnly_02, Lint_01, Lint_05, Enumerated_01
 from __future__ import annotations
 
 import json
@@ -32,6 +34,19 @@ def _show(value: Json) -> str:
 
 def _may_change(field: str, old: Json, new: Json) -> bool:
     return (field == "identity" and old == UNDER_REVIEW) or (field == "deprecated" and old is False and new is True)
+
+
+def _listed(where: str, old: Json, new: Json, ratified: bool) -> tuple[list[str], list[str]]:
+    """(problems, additions) for a key's listed values: kept in place, appended at the end."""
+    if not isinstance(old, list) or not isinstance(new, list):
+        return ([] if old == new else [f"CHANGED {where}: {_show(old)} -> {_show(new)}"]), []
+    removed = [f"REMOVED {where}.{v}" for v in old if v not in new]
+    if removed:
+        return removed, []
+    if new[:len(old)] != old:
+        return [f"CHANGED {where}: {_show(old)} -> {_show(new)}"], []
+    added = [f"ADDED {where}.{v}" for v in new[len(old):]]
+    return ([f"{a}, under a ratified version" for a in added], []) if ratified else ([], added)
 
 
 def append_only(baseline: Json, spec: Spec) -> tuple[list[str], list[str]]:
@@ -72,6 +87,10 @@ def append_only(baseline: Json, spec: Spec) -> tuple[list[str], list[str]]:
                     additions.append(f"ADDED {where}.{field}")
                 elif field not in new:
                     problems.append(f"REMOVED {where}.{field}")
+                elif field == "values":
+                    listed = _listed(f"{where}.values", old[field], new[field], spec.status == model.RATIFIED)
+                    problems += listed[0]
+                    additions += listed[1]
                 elif old[field] != new[field] and not _may_change(field, old[field], new[field]):
                     problems.append(f"CHANGED {where}.{field}: {_show(old[field])} -> {_show(new[field])}")
     return problems, additions
@@ -100,6 +119,10 @@ def _key_entry(entry: Json) -> dict[str, Json]:
         out["dicom"] = dicom
     if isinstance(out["phi_flag"], dict):
         out["phi_flag"] = _ordered(out["phi_flag"], model.PHI_FLAG_FIELDS)
+    if isinstance(out.get("values"), dict):
+        values = out["values"]
+        assert isinstance(values, dict)
+        out["values"] = {term: _ordered(v, model.LISTED_VALUE_FIELDS) for term, v in values.items()}
     return out
 
 
