@@ -565,8 +565,31 @@ The 2026-11-24 list, kept for the record:
   and a `code_sets` section had stain and fixative as their only users, and
   Decision_17 moved both to FHIR. The research is kept as
   `analysis/dicom_code_sets_2026-11-25.md`
-- [ ] **ScanTimeKeys_5.3** — the keys the maintainer accepts, each DICOM mapping
-  verified with URL and date
+- [ ] **ScanTimeKeys_5.3** — the keys Decision_16 accepts that DICOM writes as
+  one value: `BurnedInAnnotation` (0028,0301) and `ExtendedDepthOfField`
+  (0048,0012), BOOLEAN; `ObjectiveLensNumericalAperture` (0048,0113), DECIMAL,
+  in the items of the Optical Path Sequence (0048,0105); `FocusMethod`
+  (0048,0011), ENUMERATED (EnumeratedValues_5.4). Each identifies no one
+  (identity `NONE`), multiplicity 1, its DICOM mapping read 2026-11-25 in
+  PS3.6 2026e and PS3.3 2026e C.8.12.4 and C.8.12.5 [ScanTimeKeys_01]
+  - [x] Red: `uv run pytest`, `test_the_scan_time_keys_carry_their_dicom_attributes`
+    `KeyError: 'BurnedInAnnotation'`; the build of `keys_tests.cpp`: "no member
+    named 'BurnedInAnnotation' in 'I2S::Key'"
+- [ ] **EnumeratedValues_5.4** — the value type `ENUMERATED` (Decision_18): a key
+  lists its values, each a CS term that names a C++ enumerator; the header
+  gives each such key a scoped enumeration right after namespace
+  `I2S::Attribute` (`I2S::FocusMethod::AUTO`), `KeyInfo::values` and
+  `EnumerationOf<Key>`; `Attributes` takes only that enumeration for the key
+  and refuses any other text, written, read from pairs or read from DICOM;
+  values are append-only [Enumerated_01]
+  - [x] Red: `uv run pytest`, 15 failed, 72 passed (`KeyError: 'FocusMethod'`;
+    `AttributeError: 'Key' object has no attribute 'values'`); the build of
+    the C++ tests: "no member named 'FocusMethod' in 'I2S::Key'"
+- [ ] **IlluminationType_5.5** — blocked on open question 10: DICOM codes the
+  illumination method as one or more items of the Illumination Type Code
+  Sequence (0022,0016), inside the Optical Path Sequence, from the Extensible
+  CID 8123 (Baseline in the whole-slide IOD), which a single CS value and a
+  lookup by tag do not carry
 - [ ] **VERIFY:** the maintainer accepts the key list
 - [ ] **Gate:** CI green on the pull request
 
@@ -663,6 +686,7 @@ not define, under `METADATA_I2S`.
 | Decision_15 | 2026-11-25 | A value representation's example is documentation, not source: the installed header carries it only as the comment above the VR's `kVrs` row, and the specification's value-representations table documents it. The tests read the examples from a generated, never-installed `I2S_VrExamples.hpp` |
 | Decision_16 | 2026-11-25 | The scan-time vocabulary adds stain and fixative (coded, from DICOM's Specimen Preparation Sequence), `BurnedInAnnotation`, and the optics and focus facts IFE does not store (numerical aperture, illumination type, focus method, extended depth of field). Facts IFE stores natively are not repeated: pixel spacing, magnification, focal planes and their spacing, the ICC profile and the tile compression. Free-text specimen descriptions and the specimen's primary anatomic structure are clinical and travel as HL7/FHIR in the clinical metadata stream (the anatomic site as `Specimen.collection.bodySite`). Amended 2026-11-25 by Decision_17: stain and fixative are not I2S keys; they travel as FHIR `Specimen.processing` steps in the clinical metadata stream |
 | Decision_17 | 2026-11-25 | The source of a fact decides its container. What the scanner knows at scan time is an I2S key, including what it reads from the slide while scanning, such as the label barcode, so the `DigitalImageIdentifier` read from the label stays an I2S key. What the laboratory information system or the health record knows (specimen preparation, stain, fixative, embedding medium, specimen type, anatomic site, specimen descriptions) travels as HL7/FHIR in the clinical metadata stream. Facts IFE stores natively stay in IFE. Stain and fixative are FHIR `Specimen.processing` steps (`method`, and `additive` → `Substance.code` with the SNOMED CT codes of DICOM's CID 8112 and CID 8114), so I2S builds no `CODE` value type |
+| Decision_18 | 2026-11-25 | A key whose DICOM attribute is a CS with Enumerated Values other than YES and NO is an `ENUMERATED` key, written as the CS term of one of the values it lists in `spec/i2s_keys.json`. Each value is a CS term that also names a C++ enumerator (an upper-case letter, then upper-case letters, digits and underscores, at most 16 bytes) and has a description. The generated header gives each such key a scoped enumeration named after the key (`I2S::FocusMethod::AUTO`) right after namespace `I2S::Attribute`, since callers type it beside the key; `Attributes` accepts only that enumeration for the key and refuses any other text, whether written, read from pairs or read from DICOM, so one rule holds on every path. A key's values are append-only: a value may be added at the end and is never removed, renamed or moved. A YES/NO CS stays `BOOLEAN` |
 | Decision_09 | 2026-11-24 | Every attribute value is text, encoded as its DICOM VR (PS3.5 section 6.2): DATE_TIME as DT with its offset, INTEGER as IS, DECIMAL as DS, TEXT as the key's string VR, BOOLEAN as the CS values YES and NO; several values joined by the backslash. I2S defines the vocabulary and the text of a value; IFE's attribute block is the container. `I2S::Attributes` is an iterable adapter to and from IFE's (key name, value text) pairs |
 
 Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintainer's review:
@@ -755,6 +779,24 @@ Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintai
    FHIR carries as `Specimen.collection.bodySite`. An I2S key, or the
    clinical metadata stream? Answered by Decision_16 (2026-11-25): the
    clinical metadata stream, as FHIR `Specimen.collection.bodySite`.
+
+10. **Illumination type.** DICOM's whole-slide image records it as one or more
+    items of the Illumination Type Code Sequence (0022,0016) in each item of
+    the Optical Path Sequence (0048,0105) (PS3.3 2026e C.8.12.5, Type 1), coded
+    from CID 8123 Microscopy Illumination Method (Extensible, version
+    20100824; Baseline in the IOD, A.32.8.3.1.1). Its nine codes mix the light
+    path (111741 Transmission, 111742 Reflection, 111743 Epifluorescence) with
+    the contrast method (111744 Brightfield, 111745 Darkfield, 111747 Phase
+    contrast, 111748 Differential interference contrast, …), and PS3.3's own
+    example is two items, Transmission and DIC (read 2026-11-25). An
+    `ENUMERATED` key of I2S terms maps to it only with a DICOM code per value,
+    several values per key, and a DICOM reader that walks a code sequence
+    inside another sequence, none of which I2S has. Options: (a) build those
+    three, keeping the terms one-to-one with CID 8123 so a converter maps both
+    ways; (b) one `ENUMERATED` key of the light path alone (TRANSMISSION,
+    REFLECTION, EPIFLUORESCENCE), mapped by hand where DICOM's code is one of
+    those three, the contrast method left out; (c) leave illumination out of
+    version 0.1. IlluminationType_5.5 waits on the answer.
 
 ## Session log
 

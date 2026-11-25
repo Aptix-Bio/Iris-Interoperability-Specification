@@ -1,6 +1,6 @@
 // I2S::Attributes: typed keys, the DICOM text of each value, the adapter to and
 // from IFE's (key name, value text) attribute pairs, and iteration.
-// RTM TypedKeys_01, Encoding_01, Adapter_01, Iteration_01, PhiFlag_02, DicomSource_01
+// RTM TypedKeys_01, Encoding_01, Adapter_01, Iteration_01, PhiFlag_02, DicomSource_01, Enumerated_01, ScanTimeKeys_01
 // The one translation unit of this program, so I2S.hpp's function bodies compile here.
 #define I2S_IMPLEMENTATION
 #include "I2S.hpp"
@@ -17,6 +17,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace {
@@ -315,4 +316,64 @@ TEST_CASE("a DICOM value I2S refuses is reported by key, and a typed write repla
     CHECK_FALSE(attributes.to_pairs().has_value());
     attributes[I2S::Attribute::ScanTime] = kScan;
     CHECK(attributes.to_pairs().has_value());
+}
+
+// RTM Enumerated_01
+TEST_CASE("an ENUMERATED key is written as its enumeration and held as the value's CS term", "[Enumerated_01]")
+{
+    STATIC_REQUIRE(std::is_same_v<I2S::ValueOf<I2S::Key::FocusMethod>, I2S::FocusMethod>);
+    I2S::Attributes attributes;
+    attributes[I2S::Attribute::FocusMethod] = I2S::FocusMethod::MANUAL;
+    CHECK(text_of(attributes, I2S::Key::FocusMethod) == "MANUAL");
+    CHECK(attributes.get(I2S::Attribute::FocusMethod) == std::optional<I2S::FocusMethod>{I2S::FocusMethod::MANUAL});
+    const I2S::Element element = *attributes.begin();
+    CHECK(std::get<std::string>(element.value()) == "MANUAL");
+    const I2S::Attributes read = I2S::Attributes::from_pairs(attributes.to_pairs().value()).value();
+    CHECK(read.get(I2S::Attribute::FocusMethod) == std::optional<I2S::FocusMethod>{I2S::FocusMethod::MANUAL});
+}
+
+// RTM Enumerated_01
+TEST_CASE("a value outside an ENUMERATED key's list is refused, written or read", "[Enumerated_01]")
+{
+    I2S::Attributes attributes;
+    // A cast can make an enumeration hold a number it does not name.
+    const I2S::Result<std::monostate> cast = attributes.set(I2S::Attribute::FocusMethod, static_cast<I2S::FocusMethod>(7));
+    REQUIRE_FALSE(cast.has_value());
+    CHECK(cast.error().key == I2S::Key::FocusMethod);
+    CHECK(cast.error().message.find("FocusMethod") != std::string::npos);
+    CHECK(cast.error().message.find('7') != std::string::npos);
+    CHECK_FALSE(attributes.to_pairs().has_value());
+    const I2S::Error pair = I2S::Attributes::from_pairs(Pairs{{"FocusMethod", "HYBRID"}}).error();
+    CHECK(pair.key == I2S::Key::FocusMethod);
+    CHECK(pair.message.find("'HYBRID'") != std::string::npos);
+    CHECK(pair.message.find("AUTO") != std::string::npos);
+    CHECK(pair.message.find("MANUAL") != std::string::npos);
+    const I2S::Attributes dicom = I2S::Attributes::from_dicom([](I2S::DicomTag tag) -> std::optional<std::string> {
+        return tag == I2S::info(I2S::Key::FocusMethod).dicom->tag ? std::optional<std::string>{"AUTOFOCUS"} : std::nullopt;
+    });
+    REQUIRE(dicom.errors().size() == 1);
+    CHECK(dicom.errors().front().key == I2S::Key::FocusMethod);
+}
+
+// RTM ScanTimeKeys_01, DicomSource_01
+TEST_CASE("the scan-time keys read from a DICOM whole-slide image as their C++ types", "[ScanTimeKeys_01]")
+{
+    // The numerical aperture is in an item of the Optical Path Sequence; a
+    // DICOM library's lookup that searches sequence items returns it by its tag.
+    const std::map<std::pair<std::uint16_t, std::uint16_t>, std::string> slide{
+        {{0x0028, 0x0301}, "NO"},
+        {{0x0048, 0x0113}, "0.75"},
+        {{0x0048, 0x0011}, "AUTO"},
+        {{0x0048, 0x0012}, "YES "},
+    };
+    const I2S::Attributes attributes = I2S::Attributes::from_dicom([&](I2S::DicomTag tag) { return from_data_set(slide, tag); });
+    CHECK(attributes.errors().empty());
+    CHECK(attributes.get(I2S::Attribute::BurnedInAnnotation) == std::optional<bool>{false});
+    CHECK(attributes.get(I2S::Attribute::ObjectiveLensNumericalAperture) == std::optional<double>{0.75});
+    CHECK(attributes.get(I2S::Attribute::FocusMethod) == std::optional<I2S::FocusMethod>{I2S::FocusMethod::AUTO});
+    CHECK(attributes.get(I2S::Attribute::ExtendedDepthOfField) == std::optional<bool>{true});
+    CHECK(attributes.to_pairs().value() == Pairs{{"BurnedInAnnotation", "NO"},
+                                                 {"ObjectiveLensNumericalAperture", "0.75"},
+                                                 {"FocusMethod", "AUTO"},
+                                                 {"ExtendedDepthOfField", "YES"}});
 }

@@ -47,9 +47,10 @@ def _doc_block(key: Key) -> list[str]:
         if key.dicom.sequence is not None:
             dicom += f", in {key.dicom.sequence.keyword} {key.dicom.sequence.tag} items"
     short = f" (short name {key.short_name})" if key.short_name else ""
+    listed = f" (I2S::{key.name}: {', '.join(v.name for v in key.values)})" if key.values else ""
     return [
         f"/// {key.name}{short}: {' '.join(key.description.split())}",
-        f"/// Value type {key.value_type}, written as the DICOM VR {key.vr}, multiplicity {key.multiplicity.text}.",
+        f"/// Value type {key.value_type}{listed}, written as the DICOM VR {key.vr}, multiplicity {key.multiplicity.text}.",
         f"/// DICOM: {dicom}. Identity class: {key.identity}." + (" Deprecated." if key.deprecated else ""),
     ]
 
@@ -114,3 +115,23 @@ def test_the_ife_attributes_version_follows_the_version_constants() -> None:
         "inline constexpr std::uint16_t kIfeAttributesVersion = "
         "static_cast<std::uint16_t>(kVersionMajor << 8 | kVersionMinor);")
     assert lines[packed - 1].startswith("///") and "major << 8 | minor" in " ".join(lines[minor + 1:packed])
+
+
+def test_each_enumerated_keys_values_follow_the_attribute_constants() -> None:
+    """An ENUMERATED key's values are what a caller types beside its key
+    (attributes[I2S::Attribute::FocusMethod] = I2S::FocusMethod::AUTO), so the
+    scoped enumeration of each comes right after namespace Attribute, ahead of
+    the version and the tables, one documented enumerator per value."""
+    # RTM Enumerated_01
+    lines = _header()
+    _, end = _attribute_block(lines)
+    enumerated = [k for k in _spec().keys if k.values]
+    assert enumerated
+    for key in enumerated:
+        at = _index(lines, rf"^enum class {key.name} : std::uint8_t \{{$")
+        assert end < at < _index(lines, r"kVersionMajor"), key.name
+        assert lines[at - 1].startswith("/// ") and f"I2S::Attribute::{key.name}" in lines[at - 1]
+        enumerators = lines[at + 1:at + 1 + len(key.values)]
+        assert [line.split(",")[0].strip() for line in enumerators] == [v.name for v in key.values]
+        assert all(f"///< {' '.join(v.description.split())}" in line for line, v in zip(enumerators, key.values))
+        assert lines[at + 1 + len(key.values)] == "};"

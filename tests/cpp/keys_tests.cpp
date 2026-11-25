@@ -1,12 +1,15 @@
 // The generated header, used as a consumer uses it. Every check that can be a
 // static_assert is one: the tables are constexpr, so a wrong table fails the
 // build instead of a test run.
-// RTM Generated_01, Generated_02, Generated_03, Adoption_03
+// RTM Generated_01, Generated_02, Generated_03, Adoption_03, ScanTimeKeys_01, Enumerated_01
 #include "I2S.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <type_traits>
 
 namespace {
 
@@ -110,4 +113,37 @@ TEST_CASE("the version IFE's attribute block carries is major << 8 | minor", "[A
     STATIC_REQUIRE((I2S::kIfeAttributesVersion & 0xFF) == I2S::kVersionMinor);
     // Zero is IFE's unversioned claim, read as free text: I2S never writes it.
     STATIC_REQUIRE(I2S::kIfeAttributesVersion != 0);
+}
+
+// RTM ScanTimeKeys_01
+TEST_CASE("the scan-time keys carry their DICOM tags and identify no one", "[ScanTimeKeys_01]")
+{
+    constexpr const I2S::KeyInfo& burned = I2S::info(I2S::Key::BurnedInAnnotation);
+    STATIC_REQUIRE(burned.dicom->tag == I2S::DicomTag{0x0028, 0x0301});
+    STATIC_REQUIRE(burned.value_type == I2S::ValueType::BOOLEAN);
+    constexpr const I2S::KeyInfo& aperture = I2S::info(I2S::Key::ObjectiveLensNumericalAperture);
+    STATIC_REQUIRE(aperture.dicom->tag == I2S::DicomTag{0x0048, 0x0113});
+    STATIC_REQUIRE(aperture.dicom->sequence->tag == I2S::DicomTag{0x0048, 0x0105});
+    STATIC_REQUIRE(aperture.vr == I2S::Vr::DS);
+    STATIC_REQUIRE(I2S::info(I2S::Key::FocusMethod).dicom->tag == I2S::DicomTag{0x0048, 0x0011});
+    STATIC_REQUIRE(I2S::info(I2S::Key::ExtendedDepthOfField).dicom->tag == I2S::DicomTag{0x0048, 0x0012});
+    for (const I2S::Key key : {I2S::Key::BurnedInAnnotation, I2S::Key::ObjectiveLensNumericalAperture,
+                               I2S::Key::FocusMethod, I2S::Key::ExtendedDepthOfField}) {
+        CHECK(I2S::info(key).identity == I2S::IdentityClass::NONE);
+        CHECK(I2S::info(key).multiplicity.maximum == std::optional<std::uint16_t>{1});
+    }
+}
+
+// RTM Enumerated_01
+TEST_CASE("an ENUMERATED key lists its values, in the order of its enumeration", "[Enumerated_01]")
+{
+    constexpr const I2S::KeyInfo& focus = I2S::info(I2S::Key::FocusMethod);
+    STATIC_REQUIRE(focus.value_type == I2S::ValueType::ENUMERATED);
+    STATIC_REQUIRE(focus.vr == I2S::Vr::CS);
+    STATIC_REQUIRE(focus.values.size() == 2);
+    STATIC_REQUIRE(focus.values[static_cast<std::size_t>(I2S::FocusMethod::AUTO)] == "AUTO");
+    STATIC_REQUIRE(I2S::name(I2S::FocusMethod::MANUAL) == "MANUAL");
+    STATIC_REQUIRE(std::is_same_v<I2S::EnumerationOf<I2S::Key::FocusMethod>::type, I2S::FocusMethod>);
+    STATIC_REQUIRE(std::is_void_v<I2S::EnumerationOf<I2S::Key::Manufacturer>::type>);
+    STATIC_REQUIRE(I2S::info(I2S::Key::Manufacturer).values.empty());
 }

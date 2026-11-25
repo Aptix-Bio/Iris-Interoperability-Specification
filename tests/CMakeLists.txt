@@ -17,14 +17,14 @@ FetchContent_Declare(Catch2
 )
 FetchContent_MakeAvailable(Catch2)
 
-# RTM Generated_01, Generated_02, Generated_03
+# RTM Generated_01, Generated_02, Generated_03, Enumerated_01, ScanTimeKeys_01
 add_executable(i2s_keys_tests cpp/keys_tests.cpp)
 target_link_libraries(i2s_keys_tests PRIVATE I2S::i2s Catch2::Catch2WithMain)
 target_compile_options(i2s_keys_tests PRIVATE
     $<IF:$<CXX_COMPILER_ID:MSVC>,/W4 /WX,-Wall -Wextra -Wpedantic -Werror>)
 add_test(NAME i2s_keys_tests COMMAND i2s_keys_tests)
 
-# RTM TypedKeys_01, Encoding_01, Adapter_01, Iteration_01, PhiFlag_02
+# RTM TypedKeys_01, Encoding_01, Adapter_01, Iteration_01, PhiFlag_02, Enumerated_01, ScanTimeKeys_01
 add_executable(i2s_attributes_tests cpp/attributes_tests.cpp)
 target_link_libraries(i2s_attributes_tests PRIVATE I2S::i2s Catch2::Catch2WithMain)
 target_compile_options(i2s_attributes_tests PRIVATE
@@ -38,10 +38,13 @@ set(compile_fail_text_to_date_time "DateTimeValue")
 set(compile_fail_int_to_text "TextValue")
 set(compile_fail_int_to_boolean "BooleanValue")
 set(compile_fail_unknown_key "NoSuchKey")
+# RTM Enumerated_01
+# An ENUMERATED key takes its generated enumeration and no text.
+set(compile_fail_text_to_enumerated "EnumeratedValue")
 # RTM ReadableHeaders_01
 # The flat spelling I2S::Manufacturer was replaced by I2S::Attribute::Manufacturer.
 set(compile_fail_flat_spelling "Manufacturer")
-foreach(case text_to_date_time int_to_text int_to_boolean unknown_key flat_spelling)
+foreach(case text_to_date_time int_to_text int_to_boolean unknown_key flat_spelling text_to_enumerated)
     add_executable(i2s_compile_fail_${case} EXCLUDE_FROM_ALL cpp/compile_fail/${case}.cpp)
     target_link_libraries(i2s_compile_fail_${case} PRIVATE I2S::i2s)
     add_test(NAME i2s_compile_fail_${case}
@@ -137,7 +140,7 @@ add_test(NAME i2s_document COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DI
 set_tests_properties(i2s_generator_check PROPERTIES DEPENDS i2s_lint)
 set(i2s_tests i2s_pytest i2s_mypy i2s_keys_tests i2s_renamed_key_fails_to_compile i2s_attributes_tests
     i2s_compile_fail_text_to_date_time i2s_compile_fail_int_to_text i2s_compile_fail_int_to_boolean
-    i2s_compile_fail_unknown_key i2s_compile_fail_flat_spelling i2s_readme_examples i2s_two_units
+    i2s_compile_fail_unknown_key i2s_compile_fail_flat_spelling i2s_compile_fail_text_to_enumerated i2s_readme_examples i2s_two_units
     i2s_missing_implementation_fails_to_link i2s_install)
 set_tests_properties(${i2s_tests} PROPERTIES DEPENDS i2s_generator_check)
 set_tests_properties(i2s_document_refuses_printed_include i2s_document_refuses_missing_include
