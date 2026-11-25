@@ -23,8 +23,9 @@ include::{generated}/revision_history.adoc[]
 === Purpose
 
 A whole-slide image is given facts when its slide is scanned that never
-change afterwards: the laboratory's identifier for the slide, its stain, the
-date and time of the scan, and the identity of the scanner. I2S is the
+change afterwards: the laboratory's identifier for the slide, read from its
+label, the date and time of the scan, the identity of the scanner, and how it
+imaged the slide. I2S is the
 vocabulary for those facts. It names each one as a key with a value type, a
 multiplicity, its DICOM counterpart where DICOM has one, and an identity class
 stating whether its value can identify a person.
@@ -54,6 +55,15 @@ individual; clinical and identifying information is carried in the clinical
 metadata stream (HL7 v2 or FHIR) instead. A slide is then de-identified by
 dropping that stream, together with the handling of the I2S keys below whose
 identity class or PHI flag requires it.
+
+The source of a fact decides where it is carried. What the scanner knows at
+scan time, including what it reads from the slide's label, is an I2S key.
+What the laboratory information system or the health record knows (specimen
+preparation, stain, fixative, embedding medium, specimen type, anatomic site,
+specimen descriptions) is carried in the clinical metadata stream, where FHIR
+records a stain or a fixative as a `Specimen.processing` step. Facts the IFE
+file stores in its own fields (pixel spacing, magnification, focal planes,
+the ICC profile, the tile encoding) are not repeated as I2S keys.
 
 I2S follows DICOM keywords where DICOM has the fact, and diverges where it
 does not or where DICOM's attribute means something else. A divergence is

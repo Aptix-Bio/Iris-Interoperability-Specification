@@ -2,8 +2,10 @@
 
 I2S is the vocabulary of slide-level facts that a whole-slide image carries
 from the moment it is scanned: what the slide is (its Digital Image
-Identifier) and which device scanned it, and later its stain and the time it
-was scanned. Each fact is a named key with a stated value type, its DICOM
+Identifier) and which device scanned it, and later when and how it was
+scanned (the time, the optics and the focus). What the laboratory or the
+health record knows, such as the stain and the fixative, travels as HL7/FHIR
+in the clinical metadata stream. Each fact is a named key with a stated value type, its DICOM
 counterpart where one exists, and an identity class saying whether it can
 identify a person.
 

@@ -50,7 +50,7 @@ flowchart LR
 | ReadableHeadersAndExamples_9 | `I2S_Keys.hpp` opens with the whole vocabulary, one line per key, spelled `I2S::Attribute::Manufacturer`; `I2S_Attributes.hpp` opens with the public declarations; the README shows writing attributes, reading them from a DICOM file, and writing them into an Iris slide | `doing` (in PR #1) |
 | InstalledSingleHeader_10 | a program includes only an installed `<I2S.hpp>`, whose first code is the `I2S::Attribute` constants with their full documentation, defines `I2S_IMPLEMENTATION` in one `.cpp`, and builds against `find_package(I2S)`; the gates green | `doing` (in PR #1) |
 | PythonAttributes_4 | `attributes[I2S.ScanTime] = datetime.now(timezone.utc)` type-checks under mypy --strict from generated stubs, a naive datetime is refused at run time, and `Attributes` iterates | `todo` |
-| VocabularyFromScanners_5 | the keys every scanner family writes at scan time (stain, scan date and time, optics, resolution) generated and tested, each DICOM mapping verified | `todo` |
+| VocabularyFromScanners_5 | the keys a scanner knows at scan time (scan date and time, optics, focus, burned-in annotation) generated and tested, each DICOM mapping verified | `todo` |
 | IdentityClasses_6 | every key's identity class decided by the maintainer; no key left `UNDER_REVIEW` that a release depends on | `blocked` on the maintainer's answers (Open questions) |
 | IfeAndIrisSlideAdoption_7 | IFE's `METADATA_I2S` text points to I2S; Iris-Slide refuses an attribute key the generated header does not define | `todo`; EncoderTakesI2S_7.3 and IfeAttributesVersion_7.4 done ahead (Iris-Slide's encoder takes I2S's pairs; the header emits the packed version) |
 | Release_8 | a licence chosen, version 1.0 ratified, the repository public | `blocked` on the licence |
@@ -494,7 +494,9 @@ same DICOM text as the C++ adapter, checked by a shared round-trip corpus.
 
 Purpose: the scan-time facts named on 2026-11-24 (the accession identifier,
 stain, date and time of the scan, the scanner's identity down to its unique
-device identifier). Milestone: every key below that the maintainer accepts is
+device identifier), less the stain, which Decision_17 (2026-11-25) moved to
+the clinical metadata stream since the laboratory information system knows it
+and the scanner does not. Milestone: every key below that the maintainer accepts is
 in `spec/i2s_keys.json` with its DICOM mapping verified, generated and tested.
 Nothing here is added until this sprint.
 
@@ -506,10 +508,9 @@ the field census `wsi_metadata_in_practice_2026-11-25.md` added 2026-11-25).
 
 **Decided 2026-11-25** (Decision_16), against the list below:
 
-- **In:** stain (CID 8112) and fixative (CID 8114) from the Specimen
-  Preparation Sequence; `BurnedInAnnotation` (0028,0301), which says whether
-  the pixels carry identifying text; and the optics and focus keys IFE does
-  not store: `ObjectiveLensNumericalAperture` (0048,0113), illumination type,
+- **In:** `BurnedInAnnotation` (0028,0301), which says whether the pixels
+  carry identifying text; and the optics and focus keys IFE does not store:
+  `ObjectiveLensNumericalAperture` (0048,0113), illumination type,
   `FocusMethod` (0048,0011), `ExtendedDepthOfField` (0048,0012).
 - **Out, IFE stores it natively:** pixel spacing (`MICRONS_PIXEL`),
   magnification (`MAGNIFICATION`), focal planes and their spacing
@@ -522,14 +523,23 @@ the field census `wsi_metadata_in_practice_2026-11-25.md` added 2026-11-25).
 - **Out, clinical:** `PrimaryAnatomicStructure` (CID 8134), the specimen's
   anatomic site, travels as FHIR `Specimen.collection.bodySite` in the
   clinical metadata stream (open question 9, answered 2026-11-25).
+- **Out, clinical (moved from In by Decision_17, 2026-11-25):** stain (CID
+  8112) and fixative (CID 8114). FHIR R5 records each as a
+  `Specimen.processing` step: `method` the SNOMED CT procedure (127790008
+  Staining; 787378005 Fixation of specimen), `additive` a Reference(Substance)
+  whose `Substance.code` carries the CID's SNOMED CT code, one per dye (H&E is
+  two), and `time[x]` the fixation period
+  (`analysis/dicom_code_sets_2026-11-25.md`).
 
 The 2026-11-24 list, kept for the record:
 
 - **Stain and preparation** (coded, from DICOM's Specimen Preparation Sequence
   content items): staining substance (CID 8112), fixative (CID 8114),
   embedding medium (CID 8115), processing step (CID 8113). Only Olympus
-  writes a stain at scan time; the other vendors' files carry none. Needs the
-  value type `CODE` and a `code_sets` section, deferred from SpecScaffold_1.
+  writes a stain at scan time, as operator-entered free text; the other
+  vendors' files carry none. Out since 2026-11-25 (Decision_17): laboratory
+  knowledge, carried as FHIR `Specimen.processing`, so no `CODE` value type or
+  `code_sets` section is built.
 - **Scan date and time:** `AcquisitionDateTime`, with the identity question
   below (dates other than the year are a HIPAA Safe Harbor identifier when
   "directly related to an individual").
@@ -551,8 +561,10 @@ The 2026-11-24 list, kept for the record:
 
 - [x] **Analysis_5.1** — the research reports kept as written in
   `development/analysis/` (local paths removed)
-- [ ] **CodeSets_5.2** — the value type `CODE` and a `code_sets` section;
-  red: a CODE key without a code set refused
+- [ ] **CodeSets_5.2** — dropped 2026-11-25, not built: the value type `CODE`
+  and a `code_sets` section had stain and fixative as their only users, and
+  Decision_17 moved both to FHIR. The research is kept as
+  `analysis/dicom_code_sets_2026-11-25.md`
 - [ ] **ScanTimeKeys_5.3** — the keys the maintainer accepts, each DICOM mapping
   verified with URL and date
 - [ ] **VERIFY:** the maintainer accepts the key list
@@ -649,7 +661,8 @@ not define, under `METADATA_I2S`.
 | Decision_13 | 2026-11-25 | The keys open both generated headers: the first code after the includes is namespace `I2S::Attribute`, each constant with its full three-line documentation and its short name right after it; only the names-only `Key` enumeration and `TypedKey` precede it. This replaces Decision_10's one line per key |
 | Decision_14 | 2026-11-25 | IFE's u16 `ATTRIBUTES.VERSION` holds the I2S version under `METADATA_I2S` packed as `major << 8 \| minor` (0.1 is 0x0001, 1.0 is 0x0100); 0 is unversioned, which IFE reads as free text. The generated header emits it as `I2S::kIfeAttributesVersion`, and a major or minor above 255 is refused by the generator, since it cannot pack. Resolves open question 8 |
 | Decision_15 | 2026-11-25 | A value representation's example is documentation, not source: the installed header carries it only as the comment above the VR's `kVrs` row, and the specification's value-representations table documents it. The tests read the examples from a generated, never-installed `I2S_VrExamples.hpp` |
-| Decision_16 | 2026-11-25 | The scan-time vocabulary adds stain and fixative (coded, from DICOM's Specimen Preparation Sequence), `BurnedInAnnotation`, and the optics and focus facts IFE does not store (numerical aperture, illumination type, focus method, extended depth of field). Facts IFE stores natively are not repeated: pixel spacing, magnification, focal planes and their spacing, the ICC profile and the tile compression. Free-text specimen descriptions and the specimen's primary anatomic structure are clinical and travel as HL7/FHIR in the clinical metadata stream (the anatomic site as `Specimen.collection.bodySite`) |
+| Decision_16 | 2026-11-25 | The scan-time vocabulary adds stain and fixative (coded, from DICOM's Specimen Preparation Sequence), `BurnedInAnnotation`, and the optics and focus facts IFE does not store (numerical aperture, illumination type, focus method, extended depth of field). Facts IFE stores natively are not repeated: pixel spacing, magnification, focal planes and their spacing, the ICC profile and the tile compression. Free-text specimen descriptions and the specimen's primary anatomic structure are clinical and travel as HL7/FHIR in the clinical metadata stream (the anatomic site as `Specimen.collection.bodySite`). Amended 2026-11-25 by Decision_17: stain and fixative are not I2S keys; they travel as FHIR `Specimen.processing` steps in the clinical metadata stream |
+| Decision_17 | 2026-11-25 | The source of a fact decides its container. What the scanner knows at scan time is an I2S key, including what it reads from the slide while scanning, such as the label barcode, so the `DigitalImageIdentifier` read from the label stays an I2S key. What the laboratory information system or the health record knows (specimen preparation, stain, fixative, embedding medium, specimen type, anatomic site, specimen descriptions) travels as HL7/FHIR in the clinical metadata stream. Facts IFE stores natively stay in IFE. Stain and fixative are FHIR `Specimen.processing` steps (`method`, and `additive` → `Substance.code` with the SNOMED CT codes of DICOM's CID 8112 and CID 8114), so I2S builds no `CODE` value type |
 | Decision_09 | 2026-11-24 | Every attribute value is text, encoded as its DICOM VR (PS3.5 section 6.2): DATE_TIME as DT with its offset, INTEGER as IS, DECIMAL as DS, TEXT as the key's string VR, BOOLEAN as the CS values YES and NO; several values joined by the backslash. I2S defines the vocabulary and the text of a value; IFE's attribute block is the container. `I2S::Attributes` is an iterable adapter to and from IFE's (key name, value text) pairs |
 
 Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintainer's review:
@@ -667,7 +680,8 @@ Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintai
   gate; any other changed fact fails, and `--refresh-witness` refuses while
   one does.
 - `CODE` and code sets wait for VocabularyFromScanners_5, where the stain
-  vocabulary gives them a first user.
+  vocabulary gives them a first user (superseded by Decision_17, 2026-11-25:
+  the stain moved to FHIR, and `CODE` is not built).
 - Generated output is gitignored and regenerated at every configure, as in
   IFE; the generator runs at every configure (instead of IFE's run-when-missing
   option) because it rewrites only changed files.
@@ -757,3 +771,6 @@ Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintai
 - 2026-11-25 — IfeAttributesVersion_7.4: Decision_14 packs the I2S version
   into IFE's `ATTRIBUTES.VERSION` as `major << 8 | minor`; the header emits
   `kIfeAttributesVersion`; open question 8 answered.
+- 2026-11-25 — Decision_17: the source of a fact decides its container; stain
+  and fixative move to FHIR `Specimen.processing`, CodeSets_5.2 is dropped, and
+  the research is kept as `analysis/dicom_code_sets_2026-11-25.md`.
