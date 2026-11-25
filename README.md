@@ -70,24 +70,27 @@ hand. A DICOM value I2S refuses (a DT without its UTC offset, say) is kept in
 ## Writing attributes into an Iris slide
 
 `attributes.to_pairs()` gives the (key name, value text) pairs that an Iris
-File Extension (IFE) attribute block stores under `METADATA_I2S`. With IFE's
-`Iris::File::Builder` writing the slide (`IFE_Builder.hpp`):
+File Extension (IFE) attribute block stores under `METADATA_I2S`. Iris-Slide's
+encoder takes them in `IrisSlide::EncodeSlideInfo::attributes` (Iris-Headers'
+`IrisSlideTypes.hpp`) with the I2S version, and writes them as the slide's
+attribute block in place of any pairs the source file carried
+(`IrisSlideCore.hpp`):
 
 ```c++
-namespace blocks = Iris::File::blocks;
-std::vector<blocks::AttributeSizeEntry> entries;
+IrisSlide::EncodeSlideInfo info {.srcFilePath = "slide.svs", .desiredEncoding = IrisSlide::TILE_ENCODING_JPEG};
+info.attributes.type    = IrisSlide::METADATA_I2S;
+info.attributes.version = static_cast<std::uint16_t>(I2S::kVersionMajor << 8 | I2S::kVersionMinor); // proposed packing
 for (const I2S::Pair& pair : attributes.to_pairs().value()) // throws naming a refused write
-    entries.push_back({.key = pair.key, .value = pair.value});
-const Iris::File::Offset sizes_at = builder->append(blocks::AttributeSizesCreateInfo{.entries = entries});
-const Iris::File::Offset bytes_at = builder->append(blocks::AttributeBytesCreateInfo{.entries = entries});
-const Iris::File::Offset attributes_at = builder->append(blocks::AttributesCreateInfo{
-    .FORMAT = Iris::File::constants::MetadataFormats::METADATA_I2S, .SIZES_OFFSET = sizes_at, .BYTES_OFFSET = bytes_at});
-// attributes_at becomes the ATTRIBUTES_OFFSET of the slide's MetadataCreateInfo.
+    info.attributes[pair.key] = std::u8string(pair.value.begin(), pair.value.end());
+IrisSlide::Encoder encoder = IrisSlide::create_encoder(info);
+Iris::Result result = IrisSlide::dispatch_encoder(encoder); // fails naming a pair IFE cannot hold
 ```
 
-Iris-Slide's encoder does not yet take I2S attributes, and how the attribute
-block's 16-bit VERSION carries an I2S version is not yet defined; both are
-open in [development/WBS.md](development/WBS.md).
+I2S checks the keys and the value text; the encoder checks only what IFE's
+attribute block requires (ASCII keys, UTF-8 values, sizes) and refuses
+version 0. How the attribute block's 16-bit VERSION carries an I2S version is
+not yet defined: `major << 8 | minor` is the proposal in open question 8 of
+[development/WBS.md](development/WBS.md).
 
 ## Reading attributes
 

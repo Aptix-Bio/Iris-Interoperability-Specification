@@ -50,7 +50,7 @@ flowchart LR
 | PythonAttributes_4 | `attributes[I2S.ScanTime] = datetime.now(timezone.utc)` type-checks under mypy --strict from generated stubs, a naive datetime is refused at run time, and `Attributes` iterates | `todo` |
 | VocabularyFromScanners_5 | the keys every scanner family writes at scan time (stain, scan date and time, optics, resolution) generated and tested, each DICOM mapping verified | `todo` |
 | IdentityClasses_6 | every key's identity class decided by the maintainer; no key left `UNDER_REVIEW` that a release depends on | `blocked` on the maintainer's answers (Open questions) |
-| IfeAndIrisSlideAdoption_7 | IFE's `METADATA_I2S` text points to I2S; Iris-Slide refuses an attribute key the generated header does not define | `todo` |
+| IfeAndIrisSlideAdoption_7 | IFE's `METADATA_I2S` text points to I2S; Iris-Slide refuses an attribute key the generated header does not define | `todo`; EncoderTakesI2S_7.3 done ahead (Iris-Slide's encoder takes I2S's pairs) |
 | Release_8 | a licence chosen, version 1.0 ratified, the repository public | `blocked` on the licence |
 
 ## SpecScaffold_1 — the specification compiles into C++ `doing`
@@ -467,12 +467,27 @@ not define, under `METADATA_I2S`.
 - [ ] **IfeText_7.1** — IFE's `spec/ife_constants.json` `METADATA_I2S`
   description points to this specification and its version (a pull request
   on IFE)
-- [ ] **EncoderTakesI2S_7.3** — Iris-Slide's encoder takes I2S attributes:
-  today `IrisSlide::EncodeSlideInfo` (Iris-Headers `include/IrisSlideTypes.hpp`
-  at 4c78915, the commit Iris-Slide's `feature/ReviewBot_17.8` pins) has no
-  field for them, and the encoder writes the pairs it reads from the source
-  with `METADATA_FREE_TEXT`, so the README writes I2S pairs through IFE's
-  Builder instead (found 2026-11-25)
+- [x] **EncoderTakesI2S_7.3** — Iris-Slide's encoder takes I2S attributes
+  (decided 2026-11-25). Found 2026-11-25: `IrisSlide::EncodeSlideInfo`
+  (Iris-Headers `include/IrisSlideTypes.hpp` at 4c78915) had no field for
+  them, and the encoder wrote the pairs it read from the source as
+  `METADATA_FREE_TEXT`. Iris-Headers and Iris-Slide are public and I2S is
+  not yet, so neither depends on I2S: `EncodeSlideInfo::attributes` takes
+  the pairs `Attributes::to_pairs()` gives as plain text, with
+  `METADATA_I2S` and the version; the encoder checks only what IFE's
+  attribute block requires (ASCII keys, UTF-8 values, sizes), refuses
+  version 0, and writes the caller's pairs in place of the source's, since
+  a slide holds one attribute block. Keys and value text stay I2S's to
+  check (IrisSlideAllowlist_7.2) [Adoption_02]
+  - [x] Red: the README's encoder example, `c++ -std=c++20 -fsyntax-only`
+    against Iris-Headers at 4c78915, "no member named 'attributes' in
+    'IrisSlide::EncodeSlideInfo'"; Iris-Slide's `[Identity_07]` tests fail
+    16 of 29 assertions before the encoder change ([ad35821](https://github.com/Aptix-Bio/Iris-Slide/commit/ad35821b4e70be2d6d07824987e592c991c70083))
+  - [x] Green: Iris-Headers' `EncodeSlideInfo::attributes` ([406365a](https://github.com/Aptix-Bio/Iris-Headers/commit/406365aebb75115af4f74abb1ff85f8148487da9),
+    type tests 28 of 28) and Iris-Slide's encoder ([2d1667b](https://github.com/Aptix-Bio/Iris-Slide/commit/2d1667b8f46696fecbce46e4a3125076757a7ee8),
+    `ctest --preset debug` 4 of 4, `[Identity_07]` 29 of 29 assertions); the
+    README's example (c) compiles with `-fsyntax-only -Wall -Wextra
+    -Wconversion` against I2S's headers and Iris-Headers at 9fa8a26
 - [ ] **IrisSlideAllowlist_7.2** — Iris-Slide consumes the `i2s` CMake target
   by FetchContent at a pinned commit and uses `I2S::key_from_name` as its
   attribute allowlist; red: an encode with a key I2S does not define is
@@ -586,9 +601,15 @@ Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintai
 8. **The I2S version in IFE's attribute block.** IFE's `ATTRIBUTES.VERSION` is
    a u16 holding "the Iris Interoperability Specification version for
    METADATA_I2S", and I2S's version is a major and a minor (0.1). How the
-   two are packed into 16 bits is not defined by either specification, so
-   the README's Iris slide example leaves VERSION at its default (found
-   2026-11-25).
+   two are packed into 16 bits is not defined by either specification
+   (found 2026-11-25). **Proposed 2026-11-25:** `major << 8 | minor`, so 0.1
+   is `0x0001` and 1.0 is `0x0100`, a minor past 255 being a new major: it
+   orders numerically, keeps 0 for "no version" (IFE reads an unversioned
+   I2S claim as free text), and reads in a hex dump. Until it is decided
+   here and stated in IFE's `ife-attributes`, Iris-Slide's encoder takes the
+   value from its caller and refuses 0, and the README's example writes the
+   proposal, marked as such; once decided, the generator emits the packed
+   value as a constant beside `kVersionMajor` and `kVersionMinor`.
 
 ## Session log
 
@@ -596,3 +617,7 @@ Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintai
   tests, document, this folder and CI on `feature/SpecScaffold_1`.
 - 2026-11-25 — ReadableHeadersAndExamples_9: headers vocabulary first,
   `I2S::Attribute`, `from_dicom`, the README's three examples.
+- 2026-11-25 — EncoderTakesI2S_7.3: Iris-Slide's encoder takes I2S's pairs as
+  text through Iris-Headers' `EncodeSlideInfo::attributes`; the README's
+  example (c) shows the encoder path; open question 8 carries the proposed
+  version packing.

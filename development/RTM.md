@@ -76,3 +76,4 @@ flowchart LR
 | Vocabulary_01 | The scan-time vocabulary (stain, scan date and time, optics, resolution) | Goal_01 | VocabularyFromScanners_5 | — | — | Planned |
 | Identity_01 | No key a release depends on is `UNDER_REVIEW` | Goal_01, Goal_04 | IdentityClasses_6 | — | — | Blocked (Open questions 1–3) |
 | Adoption_01 | IFE's `METADATA_I2S` names I2S; Iris-Slide refuses attribute keys I2S does not define | Goal_01 | IfeAndIrisSlideAdoption_7 | — | — | Planned |
+| Adoption_02 | Iris-Slide's encoder takes `Attributes::to_pairs()`'s pairs as plain text with `METADATA_I2S` and a version, and writes them as the slide's attribute block; neither Iris-Headers nor Iris-Slide depends on I2S | Goal_01 | IfeAndIrisSlideAdoption_7 | `README.md` (example (c)); Iris-Headers `EncodeSlideInfo::attributes`, Iris-Slide `CHECK_CALLER_ATTRIBUTES` | Static: example (c) checked with `-fsyntax-only`; Iris-Slide's `[Identity_07]` | Implemented |
