@@ -498,10 +498,31 @@ device identifier). Milestone: every key below that the maintainer accepts is
 in `spec/i2s_keys.json` with its DICOM mapping verified, generated and tested.
 Nothing here is added until this sprint.
 
-Keys the research of 2026-11-24 proposes (reports `dicom_wsi.md`,
-`philips_3dhistech_roche_others.md`, `leica_aperio_hamamatsu.md`,
-`identity_rules.md`; to be moved into this repository's `development/analysis/`
-at the start of the sprint):
+Keys the research of 2026-11-24 proposes (reports in `development/analysis/`:
+`dicom_wsi_2026-11-24.md`, `philips_3dhistech_roche_others_2026-11-24.md`,
+`leica_aperio_hamamatsu_2026-11-24.md`, `identity_rules_2026-11-24.md`; the
+DICOM VL Whole Slide Microscopy IOD survey `dicom_sm_iod_2026-11-25.md` and
+the field census `wsi_metadata_in_practice_2026-11-25.md` added 2026-11-25).
+
+**Decided 2026-11-25** (Decision_16), against the list below:
+
+- **In:** stain (CID 8112) and fixative (CID 8114) from the Specimen
+  Preparation Sequence; `BurnedInAnnotation` (0028,0301), which says whether
+  the pixels carry identifying text; and the optics and focus keys IFE does
+  not store: `ObjectiveLensNumericalAperture` (0048,0113), illumination type,
+  `FocusMethod` (0048,0011), `ExtendedDepthOfField` (0048,0012).
+- **Out, IFE stores it natively:** pixel spacing (`MICRONS_PIXEL`),
+  magnification (`MAGNIFICATION`), focal planes and their spacing
+  (`Z_PLANES`, `MICRONS_PLANE`; Z-planes are coded directly in the tile
+  table), the ICC profile, and the tile compression (the tile table's
+  encoding).
+- **Out, clinical (HL7/FHIR in the clinical metadata stream):**
+  `SpecimenShortDescription` (0040,0600) and every free-text specimen
+  description.
+- **Open:** `PrimaryAnatomicStructure` (CID 8134): an I2S key, or clinical
+  context carried by HL7/FHIR (open question 9).
+
+The 2026-11-24 list, kept for the record:
 
 - **Stain and preparation** (coded, from DICOM's Specimen Preparation Sequence
   content items): staining substance (CID 8112), fixative (CID 8114),
@@ -527,8 +548,8 @@ at the start of the sprint):
   since a laboratory often derives them from the accession number; they go
   with the DII question.
 
-- [ ] **Analysis_5.1** — the research reports kept as written in
-  `development/analysis/`
+- [x] **Analysis_5.1** — the research reports kept as written in
+  `development/analysis/` (local paths removed)
 - [ ] **CodeSets_5.2** — the value type `CODE` and a `code_sets` section;
   red: a CODE key without a code set refused
 - [ ] **ScanTimeKeys_5.3** — the keys the maintainer accepts, each DICOM mapping
@@ -627,6 +648,7 @@ not define, under `METADATA_I2S`.
 | Decision_13 | 2026-11-25 | The keys open both generated headers: the first code after the includes is namespace `I2S::Attribute`, each constant with its full three-line documentation and its short name right after it; only the names-only `Key` enumeration and `TypedKey` precede it. This replaces Decision_10's one line per key |
 | Decision_14 | 2026-11-25 | IFE's u16 `ATTRIBUTES.VERSION` holds the I2S version under `METADATA_I2S` packed as `major << 8 \| minor` (0.1 is 0x0001, 1.0 is 0x0100); 0 is unversioned, which IFE reads as free text. The generated header emits it as `I2S::kIfeAttributesVersion`, and a major or minor above 255 is refused by the generator, since it cannot pack. Resolves open question 8 |
 | Decision_15 | 2026-11-25 | A value representation's example is documentation, not source: the installed header carries it only as the comment above the VR's `kVrs` row, and the specification's value-representations table documents it. The tests read the examples from a generated, never-installed `I2S_VrExamples.hpp` |
+| Decision_16 | 2026-11-25 | The scan-time vocabulary adds stain and fixative (coded, from DICOM's Specimen Preparation Sequence), `BurnedInAnnotation`, and the optics and focus facts IFE does not store (numerical aperture, illumination type, focus method, extended depth of field). Facts IFE stores natively are not repeated: pixel spacing, magnification, focal planes and their spacing, the ICC profile and the tile compression. Free-text specimen descriptions are clinical and travel as HL7/FHIR in the clinical metadata stream |
 | Decision_09 | 2026-11-24 | Every attribute value is text, encoded as its DICOM VR (PS3.5 section 6.2): DATE_TIME as DT with its offset, INTEGER as IS, DECIMAL as DS, TEXT as the key's string VR, BOOLEAN as the CS values YES and NO; several values joined by the backslash. I2S defines the vocabulary and the text of a value; IFE's attribute block is the container. `I2S::Attributes` is an iterable adapter to and from IFE's (key name, value text) pairs |
 
 Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintainer's review:
@@ -712,6 +734,11 @@ Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintai
 8. **The I2S version in IFE's attribute block.** Answered by Decision_14
    (2026-11-25): `major << 8 | minor`, emitted as `kIfeAttributesVersion`
    (IfeAttributesVersion_7.4) and stated in IFE's `ife-attributes`.
+
+9. **Primary anatomic structure.** DICOM carries the specimen's anatomic
+   site (CID 8134) in the specimen description; it is clinical context, which
+   FHIR carries as `Specimen.collection.bodySite`. An I2S key, or the
+   clinical metadata stream? (Decision_16 leaves it open.)
 
 ## Session log
 
