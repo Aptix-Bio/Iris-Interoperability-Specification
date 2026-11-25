@@ -380,7 +380,9 @@ pull request #1 (Decision_08).
     DCMTK 3.7.1's headers, since DCMTK is not installed here
 - [ ] **VERIFY:** the maintainer reads the first screen of both headers and the
   README
-- [ ] **Gate:** CI green on pull request #1
+- [x] **Gate:** CI green on pull request #1: run 45648482824 on
+  `blacksmith-2vcpu-ubuntu-2404`, gates 17 of 17 (the five compile-fail cases
+  pass under GCC too)
 
 ## PythonAttributes_4 — the same vocabulary, typed in Python `todo` · needs TypedAttributes_3
 
