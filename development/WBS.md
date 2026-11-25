@@ -519,8 +519,9 @@ the field census `wsi_metadata_in_practice_2026-11-25.md` added 2026-11-25).
 - **Out, clinical (HL7/FHIR in the clinical metadata stream):**
   `SpecimenShortDescription` (0040,0600) and every free-text specimen
   description.
-- **Open:** `PrimaryAnatomicStructure` (CID 8134): an I2S key, or clinical
-  context carried by HL7/FHIR (open question 9).
+- **Out, clinical:** `PrimaryAnatomicStructure` (CID 8134), the specimen's
+  anatomic site, travels as FHIR `Specimen.collection.bodySite` in the
+  clinical metadata stream (open question 9, answered 2026-11-25).
 
 The 2026-11-24 list, kept for the record:
 
@@ -648,7 +649,7 @@ not define, under `METADATA_I2S`.
 | Decision_13 | 2026-11-25 | The keys open both generated headers: the first code after the includes is namespace `I2S::Attribute`, each constant with its full three-line documentation and its short name right after it; only the names-only `Key` enumeration and `TypedKey` precede it. This replaces Decision_10's one line per key |
 | Decision_14 | 2026-11-25 | IFE's u16 `ATTRIBUTES.VERSION` holds the I2S version under `METADATA_I2S` packed as `major << 8 \| minor` (0.1 is 0x0001, 1.0 is 0x0100); 0 is unversioned, which IFE reads as free text. The generated header emits it as `I2S::kIfeAttributesVersion`, and a major or minor above 255 is refused by the generator, since it cannot pack. Resolves open question 8 |
 | Decision_15 | 2026-11-25 | A value representation's example is documentation, not source: the installed header carries it only as the comment above the VR's `kVrs` row, and the specification's value-representations table documents it. The tests read the examples from a generated, never-installed `I2S_VrExamples.hpp` |
-| Decision_16 | 2026-11-25 | The scan-time vocabulary adds stain and fixative (coded, from DICOM's Specimen Preparation Sequence), `BurnedInAnnotation`, and the optics and focus facts IFE does not store (numerical aperture, illumination type, focus method, extended depth of field). Facts IFE stores natively are not repeated: pixel spacing, magnification, focal planes and their spacing, the ICC profile and the tile compression. Free-text specimen descriptions are clinical and travel as HL7/FHIR in the clinical metadata stream |
+| Decision_16 | 2026-11-25 | The scan-time vocabulary adds stain and fixative (coded, from DICOM's Specimen Preparation Sequence), `BurnedInAnnotation`, and the optics and focus facts IFE does not store (numerical aperture, illumination type, focus method, extended depth of field). Facts IFE stores natively are not repeated: pixel spacing, magnification, focal planes and their spacing, the ICC profile and the tile compression. Free-text specimen descriptions and the specimen's primary anatomic structure are clinical and travel as HL7/FHIR in the clinical metadata stream (the anatomic site as `Specimen.collection.bodySite`) |
 | Decision_09 | 2026-11-24 | Every attribute value is text, encoded as its DICOM VR (PS3.5 section 6.2): DATE_TIME as DT with its offset, INTEGER as IS, DECIMAL as DS, TEXT as the key's string VR, BOOLEAN as the CS values YES and NO; several values joined by the backslash. I2S defines the vocabulary and the text of a value; IFE's attribute block is the container. `I2S::Attributes` is an iterable adapter to and from IFE's (key name, value text) pairs |
 
 Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintainer's review:
@@ -738,7 +739,8 @@ Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintai
 9. **Primary anatomic structure.** DICOM carries the specimen's anatomic
    site (CID 8134) in the specimen description; it is clinical context, which
    FHIR carries as `Specimen.collection.bodySite`. An I2S key, or the
-   clinical metadata stream? (Decision_16 leaves it open.)
+   clinical metadata stream? Answered by Decision_16 (2026-11-25): the
+   clinical metadata stream, as FHIR `Specimen.collection.bodySite`.
 
 ## Session log
 
