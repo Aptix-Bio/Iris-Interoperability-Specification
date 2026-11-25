@@ -1,0 +1,195 @@
+{
+  "identity_classes": {
+    "NONE": "0.1",
+    "UNDER_REVIEW": "0.1"
+  },
+  "keys": {
+    "AcquisitionDateTime": {
+      "deprecated": false,
+      "dicom": {
+        "keyword": "AcquisitionDateTime",
+        "sequence": null,
+        "tag": "(0008,002A)",
+        "vr": "DT"
+      },
+      "identity": "UNDER_REVIEW",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": "ScanTime",
+      "since": "0.1",
+      "value_type": "DATE_TIME",
+      "vr": "DT"
+    },
+    "DeviceSerialNumber": {
+      "deprecated": false,
+      "dicom": {
+        "keyword": "DeviceSerialNumber",
+        "sequence": null,
+        "tag": "(0018,1000)",
+        "vr": "LO"
+      },
+      "identity": "UNDER_REVIEW",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "TEXT",
+      "vr": "LO"
+    },
+    "DigitalImageIdentifier": {
+      "deprecated": false,
+      "dicom": null,
+      "identity": "UNDER_REVIEW",
+      "multiplicity": "1",
+      "phi_flag": {
+        "absent_means_phi": true,
+        "key": "DigitalImageIdentifierIsPHI"
+      },
+      "short_name": "DII",
+      "since": "0.1",
+      "value_type": "TEXT",
+      "vr": "LO"
+    },
+    "DigitalImageIdentifierIsPHI": {
+      "deprecated": false,
+      "dicom": null,
+      "identity": "NONE",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": "DII_is_PHI",
+      "since": "0.1",
+      "value_type": "BOOLEAN",
+      "vr": "CS"
+    },
+    "Manufacturer": {
+      "deprecated": false,
+      "dicom": {
+        "keyword": "Manufacturer",
+        "sequence": null,
+        "tag": "(0008,0070)",
+        "vr": "LO"
+      },
+      "identity": "NONE",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "TEXT",
+      "vr": "LO"
+    },
+    "ManufacturerModelName": {
+      "deprecated": false,
+      "dicom": {
+        "keyword": "ManufacturerModelName",
+        "sequence": null,
+        "tag": "(0008,1090)",
+        "vr": "LO"
+      },
+      "identity": "NONE",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "TEXT",
+      "vr": "LO"
+    },
+    "SoftwareVersions": {
+      "deprecated": false,
+      "dicom": {
+        "keyword": "SoftwareVersions",
+        "sequence": null,
+        "tag": "(0018,1020)",
+        "vr": "LO"
+      },
+      "identity": "NONE",
+      "multiplicity": "1-n",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "TEXT",
+      "vr": "LO"
+    },
+    "UniqueDeviceIdentifier": {
+      "deprecated": false,
+      "dicom": {
+        "keyword": "UniqueDeviceIdentifier",
+        "sequence": {
+          "keyword": "UDISequence",
+          "tag": "(0018,100A)"
+        },
+        "tag": "(0018,1009)",
+        "vr": "UT"
+      },
+      "identity": "UNDER_REVIEW",
+      "multiplicity": "1",
+      "phi_flag": null,
+      "short_name": null,
+      "since": "0.1",
+      "value_type": "TEXT",
+      "vr": "UT"
+    }
+  },
+  "value_representations": {
+    "CS": {
+      "length_unit": "bytes",
+      "max_length": 16,
+      "multiple_values": true,
+      "since": "0.1"
+    },
+    "DS": {
+      "length_unit": "bytes",
+      "max_length": 16,
+      "multiple_values": true,
+      "since": "0.1"
+    },
+    "DT": {
+      "length_unit": "bytes",
+      "max_length": 26,
+      "multiple_values": true,
+      "since": "0.1"
+    },
+    "IS": {
+      "length_unit": "bytes",
+      "max_length": 12,
+      "multiple_values": true,
+      "since": "0.1"
+    },
+    "LO": {
+      "length_unit": "characters",
+      "max_length": 64,
+      "multiple_values": true,
+      "since": "0.1"
+    },
+    "LT": {
+      "length_unit": "characters",
+      "max_length": 10240,
+      "multiple_values": false,
+      "since": "0.1"
+    },
+    "SH": {
+      "length_unit": "characters",
+      "max_length": 16,
+      "multiple_values": true,
+      "since": "0.1"
+    },
+    "ST": {
+      "length_unit": "characters",
+      "max_length": 1024,
+      "multiple_values": false,
+      "since": "0.1"
+    },
+    "UT": {
+      "length_unit": "bytes",
+      "max_length": 4294967294,
+      "multiple_values": false,
+      "since": "0.1"
+    }
+  },
+  "value_types": {
+    "BOOLEAN": "0.1",
+    "DATE_TIME": "0.1",
+    "DECIMAL": "0.1",
+    "INTEGER": "0.1",
+    "TEXT": "0.1"
+  }
+}

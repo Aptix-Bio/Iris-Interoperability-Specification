@@ -1,0 +1,18 @@
+= A narrative that includes a file the generator does not produce
+include::{generated}/attributes.adoc[]
+
+== Tables
+
+include::{generated}/revision_history.adoc[]
+
+include::{generated}/value_types.adoc[]
+
+include::{generated}/identity_classes.adoc[]
+
+include::{generated}/value_representations.adoc[]
+
+include::{generated}/keys_table.adoc[]
+
+include::{generated}/key_sections.adoc[]
+
+include::{generated}/no_such_table.adoc[]

@@ -1,0 +1,198 @@
+"""The generator refuses a specification that breaks the append-only rule or
+names a key twice, naming the offending key. Each test edits an in-memory copy
+of the committed spec and checks it against the committed witness."""
+# RTM Schema_01, AppendOnly_01, UniqueNames_01, Document_01
+from __future__ import annotations
+
+import copy
+from pathlib import Path
+
+import pytest
+
+from generator import pipeline
+from generator.model import Json, SpecError, parse
+from generator.validate import append_only
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def _documents() -> tuple[Json, Json, Json]:
+    return (
+        pipeline.load_json(ROOT / "spec" / "i2s_header.json"),
+        pipeline.load_json(ROOT / "spec" / "i2s_keys.json"),
+        pipeline.load_json(ROOT / "tests" / "witness" / "witness.json"),
+    )
+
+
+def _keys_01(keys: Json) -> dict[str, Json]:
+    assert isinstance(keys, dict)
+    group = keys["keys"]
+    assert isinstance(group, dict)
+    versions = group["i2s_version"]
+    assert isinstance(versions, dict)
+    members = versions["0.1"]
+    assert isinstance(members, dict)
+    return members
+
+
+def _gate(header: Json, keys: Json, baseline: Json) -> tuple[list[str], list[str]]:
+    return append_only(baseline, parse(header, keys))
+
+
+def test_committed_spec_passes() -> None:
+    header, keys, baseline = _documents()
+    assert _gate(header, keys, baseline) == ([], [])
+
+
+def test_removed_key_is_rejected() -> None:
+    header, keys, baseline = _documents()
+    edited = copy.deepcopy(keys)
+    del _keys_01(edited)["Manufacturer"]
+    problems, _ = _gate(header, edited, baseline)
+    assert problems == ["REMOVED keys.Manufacturer"]
+
+
+def test_retyped_key_is_rejected() -> None:
+    header, keys, baseline = _documents()
+    edited = copy.deepcopy(keys)
+    entry = _keys_01(edited)["Manufacturer"]
+    assert isinstance(entry, dict)
+    entry["value_type"] = "INTEGER"
+    entry["vr"] = "IS"
+    entry["dicom"] = None
+    problems, _ = _gate(header, edited, baseline)
+    assert problems == [
+        'CHANGED keys.Manufacturer.dicom: {"keyword": "Manufacturer", "sequence": null, "tag": "(0008,0070)", "vr": "LO"} -> null',
+        'CHANGED keys.Manufacturer.value_type: "TEXT" -> "INTEGER"',
+        'CHANGED keys.Manufacturer.vr: "LO" -> "IS"',
+    ]
+
+
+def test_added_key_passes_as_a_note() -> None:
+    header, keys, baseline = _documents()
+    edited = copy.deepcopy(keys)
+    members = _keys_01(edited)
+    members["ScannerFieldOfView"] = copy.deepcopy(members["Manufacturer"])
+    problems, additions = _gate(header, edited, baseline)
+    assert problems == []
+    assert additions == ["ADDED keys.ScannerFieldOfView"]
+
+
+def test_identity_under_review_may_be_decided() -> None:
+    header, keys, baseline = _documents()
+    edited = copy.deepcopy(keys)
+    entry = _keys_01(edited)["DigitalImageIdentifier"]
+    assert isinstance(entry, dict)
+    entry["identity"] = "NONE"
+    entry["identity_note"] = None
+    assert _gate(header, edited, baseline)[0] == []
+
+
+def test_duplicate_name_in_one_object_is_rejected(tmp_path: Path) -> None:
+    # json.loads keeps the last of two equal names, so a duplicate key would
+    # vanish silently without the loader's own check.
+    path = tmp_path / "keys.json"
+    path.write_text('{"Manufacturer": 1, "Manufacturer": 2}')
+    with pytest.raises(SpecError, match="duplicate name 'Manufacturer'"):
+        pipeline.load_json(path)
+
+
+def test_duplicate_name_across_version_groups_is_rejected() -> None:
+    header, keys, _ = _documents()
+    header_02 = copy.deepcopy(header)
+    assert isinstance(header_02, dict)
+    header_02["version"] = {"major": 0, "minor": 2}
+    revisions = header_02["revisions"]
+    assert isinstance(revisions, list) and isinstance(revisions[0], dict)
+    revisions[0]["status"] = "ratified"
+    revisions.append({"version": "0.2", "status": "draft", "date": "2026-11-24",
+                      "authors": ["Example Author"], "summary": "Example revision."})
+    edited = copy.deepcopy(keys)
+    assert isinstance(edited, dict)
+    group = edited["keys"]
+    assert isinstance(group, dict)
+    versions = group["i2s_version"]
+    assert isinstance(versions, dict)
+    versions["0.2"] = {"Manufacturer": copy.deepcopy(_keys_01(edited)["Manufacturer"])}
+    with pytest.raises(SpecError, match="keys.Manufacturer: defined in 0.1 and 0.2"):
+        parse(header_02, edited)
+
+
+def test_short_name_equal_to_a_key_name_is_rejected() -> None:
+    header, keys, _ = _documents()
+    edited = copy.deepcopy(keys)
+    entry = _keys_01(edited)["DeviceSerialNumber"]
+    assert isinstance(entry, dict)
+    entry["short_name"] = "Manufacturer"
+    with pytest.raises(SpecError, match="short name 'Manufacturer' of DeviceSerialNumber"):
+        parse(header, edited)
+
+
+def test_unknown_value_type_is_rejected() -> None:
+    header, keys, _ = _documents()
+    edited = copy.deepcopy(keys)
+    entry = _keys_01(edited)["Manufacturer"]
+    assert isinstance(entry, dict)
+    entry["value_type"] = "STRING"
+    with pytest.raises(SpecError, match="keys.Manufacturer.value_type: unknown value type 'STRING'"):
+        parse(header, edited)
+
+
+def test_generation_is_deterministic(tmp_path: Path) -> None:
+    for run in ("a", "b"):
+        assert pipeline.run(ROOT, tmp_path / run / "source", tmp_path / run / "docs") == 0
+    first = sorted(p.relative_to(tmp_path / "a") for p in (tmp_path / "a").rglob("*") if p.is_file())
+    second = sorted(p.relative_to(tmp_path / "b") for p in (tmp_path / "b").rglob("*") if p.is_file())
+    assert first == second and first
+    for rel in first:
+        assert (tmp_path / "a" / rel).read_bytes() == (tmp_path / "b" / rel).read_bytes()
+
+
+# RTM PhiFlag_01
+def test_phi_flag_must_name_a_boolean_key() -> None:
+    header, keys, _ = _documents()
+    edited = copy.deepcopy(keys)
+    entry = _keys_01(edited)["DigitalImageIdentifier"]
+    assert isinstance(entry, dict)
+    entry["phi_flag"] = {"key": "Manufacturer", "absent_means_phi": True}
+    with pytest.raises(SpecError, match="keys.DigitalImageIdentifier.phi_flag: Manufacturer is TEXT, not BOOLEAN"):
+        parse(header, edited)
+
+
+# RTM PhiFlag_01
+def test_phi_flag_must_name_a_defined_key() -> None:
+    header, keys, _ = _documents()
+    edited = copy.deepcopy(keys)
+    entry = _keys_01(edited)["DigitalImageIdentifier"]
+    assert isinstance(entry, dict)
+    entry["phi_flag"] = {"key": "DII_is_PHI_typo", "absent_means_phi": True}
+    with pytest.raises(SpecError, match="keys.DigitalImageIdentifier.phi_flag: no key named 'DII_is_PHI_typo'"):
+        parse(header, edited)
+
+
+# RTM PhiFlag_02
+def test_changed_absent_default_is_rejected() -> None:
+    header, keys, baseline = _documents()
+    edited = copy.deepcopy(keys)
+    entry = _keys_01(edited)["DigitalImageIdentifier"]
+    assert isinstance(entry, dict)
+    entry["phi_flag"] = {"key": "DigitalImageIdentifierIsPHI", "absent_means_phi": False}
+    problems, _ = _gate(header, edited, baseline)
+    assert problems == [
+        'CHANGED keys.DigitalImageIdentifier.phi_flag: '
+        '{"absent_means_phi": true, "key": "DigitalImageIdentifierIsPHI"} -> '
+        '{"absent_means_phi": false, "key": "DigitalImageIdentifierIsPHI"}'
+    ]
+
+
+@pytest.mark.parametrize("part", ["major", "minor"])
+def test_a_version_that_does_not_pack_into_ife_is_rejected(part: str) -> None:
+    """IFE's ATTRIBUTES.VERSION holds major << 8 | minor in 16 bits, so each
+    half must fit a byte; 256 would carry into the major or out of the field."""
+    # RTM Adoption_03
+    header, keys, _ = _documents()
+    edited = copy.deepcopy(header)
+    assert isinstance(edited, dict) and isinstance(edited["version"], dict)
+    edited["version"][part] = 256
+    with pytest.raises(SpecError, match=f"header.version: {part} 256 does not fit"):
+        parse(edited, keys)

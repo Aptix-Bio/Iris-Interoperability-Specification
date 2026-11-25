@@ -1,0 +1,23 @@
+{
+  "name": "Iris Interoperability Specification",
+  "abbreviation": "I2S",
+  "repository": "https://github.com/Aptix-Bio/Iris-Interoperability-Specification",
+  "// MARK: - VERSION": "Emitted as I2S::kVersionMajor / kVersionMinor. Every version group in spec/i2s_keys.json must be at or below this version. Append-only -- ensure a bump never invalidates a file written under an earlier one.",
+  "version": {
+    "major": 0,
+    "minor": 1
+  },
+  "status": "draft",
+  "// MARK: - REVISION HISTORY": "One entry per version, oldest first, rendered into the specification document.",
+  "revisions": [
+    {
+      "version": "0.1",
+      "status": "draft",
+      "date": "2026-11-24",
+      "authors": [
+        "Ryan Landvater MD"
+      ],
+      "summary": "Initial draft. Defines the key schema (name, short name, DICOM counterpart, value type, DICOM VR, multiplicity, identity class, PHI flag), the value types, the DICOM value representations a value is written as, and the identity classes, and seeds the Digital Image Identifier (DII) with its PHI flag DII_is_PHI (absent means PHI) and the scanner's identity (manufacturer, model, serial number, software versions, unique device identifier) and the scan time (ScanTime); the serial number, the unique device identifier and the scan time are under review as possible identifiers."
+    }
+  ]
+}

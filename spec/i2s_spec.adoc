@@ -1,0 +1,180 @@
+= Iris Interoperability Specification (I2S)
+:doctype: book
+:title-page:
+:toc: left
+:toclevels: 3
+:sectnums:
+:sectanchors:
+:sectlinks:
+:xrefstyle: full
+:icons: font
+// Where the generated half lives. Overridden on the command line so the
+// document builds from a build tree as well as from the source tree.
+:generated: ../generated_docs
+include::{generated}/attributes.adoc[]
+
+[discrete]
+== Revision History
+
+include::{generated}/revision_history.adoc[]
+
+== Introduction
+
+=== Purpose
+
+A whole-slide image is given facts when its slide is scanned that never
+change afterwards: the laboratory's identifier for the slide, read from its
+label, the date and time of the scan, the identity of the scanner, and how it
+imaged the slide. I2S is the
+vocabulary for those facts. It names each one as a key with a value type, a
+multiplicity, its DICOM counterpart where DICOM has one, and an identity class
+stating whether its value can identify a person.
+
+I2S is published as a machine-readable schema, `spec/i2s_header.json` and
+`spec/i2s_keys.json`. A generator compiles it into a C++20 header,
+`I2S.hpp`, and into the tables and key sections of this document, so
+neither can disagree with the schema. Implementers *should* consume the schema
+or the generated header rather than transcribe this document. The schema and
+the generator are at {repository}.
+
+=== Conventions
+
+The key words *shall*, *shall not*, *should* and *may* are normative. A
+*reader* is software that reads I2S attributes from a file; a *de-identifier*
+is software that removes or replaces what can identify a person before a file
+is shared.
+
+== Scope and Identity
+
+=== Slide facts and clinical metadata
+
+I2S covers facts of the slide fixed when it was scanned. It does not cover
+the patient. In an Iris File Extension (IFE) file, attributes marked
+`METADATA_I2S` hold I2S keys, and every pair promises to identify no
+individual; clinical and identifying information is carried in the clinical
+metadata stream (HL7 v2 or FHIR) instead. A slide is then de-identified by
+dropping that stream, together with the handling of the I2S keys below whose
+identity class or PHI flag requires it.
+
+The source of a fact decides where it is carried. What the scanner knows at
+scan time, including what it reads from the slide's label, is an I2S key.
+What the laboratory information system or the health record knows (specimen
+preparation, stain, fixative, embedding medium, specimen type, anatomic site,
+specimen descriptions) is carried in the clinical metadata stream, where FHIR
+records a stain or a fixative as a `Specimen.processing` step. Facts the IFE
+file stores in its own fields (pixel spacing, magnification, focal planes,
+the ICC profile, the tile encoding) are not repeated as I2S keys.
+
+I2S follows DICOM keywords where DICOM has the fact, and diverges where it
+does not or where DICOM's attribute means something else. A divergence is
+stated in the key's section.
+
+=== Identity classes
+
+Every key has one identity class. A key whose value is found to identify a
+person leaves I2S: it is deprecated and its fact moves to the clinical
+metadata stream.
+
+include::{generated}/identity_classes.adoc[]
+
+A de-identifier *shall* treat the value of an `UNDER_REVIEW` key as
+identifying, unless the key's PHI flag states for the file that it is not.
+
+=== The Digital Image Identifier and its PHI flag
+
+`DigitalImageIdentifier` (short name `DII`) is the identifier the laboratory
+gave the slide when it was accessioned. It has no DICOM keyword: DICOM's
+Accession Number identifies an imaging service request, and its Container
+Identifier identifies the slide container.
+
+Whether an accession-derived identifier identifies a person depends on the
+laboratory. I2S therefore carries the answer per file, in the BOOLEAN key
+`DigitalImageIdentifierIsPHI` (short name `DII_is_PHI`):
+
+* `true`: the DII is protected health information, and a de-identifier *shall*
+  scramble it.
+* `false`: the DII identifies no individual, and a de-identifier *may* keep it.
+* Absent, while the DII is present: a reader and a de-identifier *shall* treat
+  the DII as protected health information and scramble it. This is the safe
+  default; a writer that knows the DII identifies no one *should* write the
+  flag as `false`.
+
+The flag is a fact about the DII and identifies no one itself.
+
+== Relation to IFE
+
+I2S defines a vocabulary. For each key it states the name, the short name, the
+value type, the DICOM value representation (VR) the value is written as, the
+text of one value under that VR, the VR's limits, the identity class, and the
+PHI flag rule. It defines no container, byte layout, wire format or separator
+between keys.
+
+The container is the Iris File Extension's attribute block: an attributes
+block whose FORMAT is `METADATA_I2S`, sliced by its attribute sizes array into
+key and value byte runs (IFE 1.1, sections Attributes and Attribute Sizes
+Array; https://github.com/Aptix-Bio/Iris-File-Extension). A key's name, in
+ASCII, is the bytes IFE stores as the attribute key, and the value's text, in
+UTF-8, is the bytes it stores as an `ATTRIBUTE_STRING` value. I2S's limits fit
+IFE's: a key name is far shorter than the 65 535 bytes of IFE's 16-bit
+KEY_SIZE, and the longest value, a UT of 2^32^ - 2 bytes, fits IFE's 32-bit
+VALUE_SIZE.
+
+The C++ class `I2S::Attributes` is an adapter between typed values and those
+(key name, value text) pairs. It converts in both directions and holds no
+other format.
+
+== Value Types
+
+A key's value is written as text, encoded as a DICOM value representation as
+PS3.5 section 6.2 defines it. Each value type names the VRs it may be written
+as, and each key names its VR.
+
+include::{generated}/value_types.adoc[]
+
+include::{generated}/value_representations.adoc[]
+
+A `DATE_TIME` is a DT. I2S requires every component to the second and the UTC
+offset, which DICOM leaves optional, and writes the fraction to the
+microsecond, so a value written by I2S is always 26 bytes. A value of several
+values joins them with the backslash, DICOM's value delimiter; only the string
+VRs that allow it hold several values, and in this version only `TEXT` keys
+do.
+
+== Keys
+
+include::{generated}/keys_table.adoc[]
+
+include::{generated}/key_sections.adoc[]
+
+== Versioning and Change
+
+=== Append-only
+
+I2S is append-only. Once a version is published, no key, value type or
+identity class is removed, renamed, retyped or remapped, and no key's short
+name, DICOM counterpart, multiplicity or PHI flag changes. A key is retired by
+marking it deprecated, with the reason; it stays defined so that files
+written with it can still be read, and a deprecated key is never restored.
+The one fact that may change is the identity class of an `UNDER_REVIEW` key,
+which exists to be decided.
+
+These rules are checked mechanically. The generator compares the
+specification with a committed record of every published fact and refuses any
+change it forbids, naming the key and both values.
+
+=== Adding a key
+
+. Add the key to the newest version's group in `spec/i2s_keys.json`; a key is
+  never added to an older version, nor to a ratified one.
+. Map it to DICOM where DICOM has the fact, checked against the current
+  standard, with the source's URL and the date it was read.
+. Validate and canonicalize the files with `python3 -m generator --fix`.
+. Record the addition in the committed record of facts with
+  `python3 -m generator --refresh-witness`, in the same change.
+
+=== Versions
+
+Every version group of the schema is a revision in the revision history. The
+specification's version is the newest revision; revisions follow one another
+without a gap (the next minor version, or the next major version at minor 0),
+and only the newest may be a draft.

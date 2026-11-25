@@ -1,0 +1,24 @@
+# The generator is standard-library Python, so CMake's configure step runs it
+# with any Python 3.11+ (StrEnum). uv manages only the development tools that
+# check it: mypy and pytest, locked in uv.lock and installed into .venv/.
+[project]
+name = "i2s-generator"
+version = "0.1.0"
+description = "Compiles the Iris Interoperability Specification's JSON into C++20 and a specification document"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = ["mypy==2.4.1", "pytest==9.2.0"]
+
+[tool.uv]
+package = false
+
+[tool.mypy]
+strict = true
+disallow_any_explicit = true
+files = ["generator", "tests/generator"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/generator"]
+pythonpath = ["."]

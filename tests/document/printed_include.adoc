@@ -1,0 +1,20 @@
+= A narrative with an include not at column 0
+include::{generated}/attributes.adoc[]
+
+== Tables
+
+include::{generated}/revision_history.adoc[]
+
+include::{generated}/value_types.adoc[]
+
+include::{generated}/identity_classes.adoc[]
+
+include::{generated}/value_representations.adoc[]
+
+include::{generated}/keys_table.adoc[]
+
+include::{generated}/key_sections.adoc[]
+
+The directive below is indented, so Asciidoctor prints it as text without a warning.
+
+ include::{generated}/keys_table.adoc[]
