@@ -8,6 +8,9 @@ so an unknown name is an explicit absence the caller must handle.
 # RTM Generated_01, Generated_02, Generated_03, Generated_04, PhiFlag_01, PhiFlag_02
 from __future__ import annotations
 
+import textwrap
+from collections.abc import Sequence
+
 from ..model import DicomTag, Key, Member, Spec, ValueRepresentation
 
 
@@ -67,7 +70,8 @@ def _phi_flag(key: Key) -> str:
 
 def _row(key: Key) -> str:
     maximum = "std::nullopt" if key.multiplicity.maximum is None else str(key.multiplicity.maximum)
-    return (
+    description = textwrap.wrap(f"{key.name}, since {key.since}: {_comment(key.description)}", 96)
+    return "".join(f"    // {line}\n" for line in description) + (
         f"    KeyInfo{{Key::{key.name}, {_string(key.name)}, {_optional_string(key.short_name)},\n"
         f"            {_dicom(key)},\n"
         f"            ValueType::{key.value_type}, Vr::{key.vr}, Multiplicity{{{key.multiplicity.minimum}, {maximum}}}, "
@@ -82,28 +86,60 @@ def _vr_row(vr: ValueRepresentation) -> str:
             f"{'true' if vr.multiple_values else 'false'}, {_string(vr.example)}}},")
 
 
-def _typed_key(key: Key) -> str:
-    """The constant a developer types, with the documentation an IDE shows on hover."""
-    dicom = "none: I2S diverges from DICOM" if key.dicom is None else f"{key.dicom.keyword} {key.dicom.tag}"
-    lines = [
-        f"/// {key.name}" + (f" (short name {key.short_name})" if key.short_name else "") + f": {_comment(key.description)}",
-        f"/// Value type {key.value_type}, written as the DICOM VR {key.vr}, multiplicity {key.multiplicity.text}.",
-        f"/// DICOM: {dicom}. Identity class: {key.identity}." + (" Deprecated." if key.deprecated else ""),
-        f"inline constexpr TypedKey<Key::{key.name}> {key.name}{{}};",
+def _facts(key: Key) -> tuple[str, str, str, str]:
+    """A key's columns in the vocabulary block: value type, VR, multiplicity, DICOM attribute."""
+    if key.dicom is None:
+        dicom = "no DICOM attribute"
+    else:
+        dicom = f"{key.dicom.tag} {key.dicom.keyword}"
+        if key.dicom.sequence is not None:
+            dicom += f", in {key.dicom.sequence.keyword} {key.dicom.sequence.tag} items"
+    return key.value_type, key.vr, key.multiplicity.text, dicom + (", deprecated" if key.deprecated else "")
+
+
+def _aligned(rows: Sequence[tuple[str, ...]], indent: str = "") -> list[str]:
+    """Rows of columns, each column padded to its widest cell, the last one unpadded."""
+    widths = [max(len(row[column]) for row in rows) for column in range(len(rows[0]) - 1)]
+    return [indent + " ".join(cell.ljust(width) for cell, width in zip(row, widths)) + " " + row[-1] for row in rows]
+
+
+def _vocabulary(keys: tuple[Key, ...]) -> str:
+    """The Key enumeration and the I2S::Attribute constants, one aligned line per key.
+
+    The trailing ///< comment is what an IDE shows on hover over the enumerator
+    or the constant, so each line documents itself."""
+    comments = ["///< " + line for line in _aligned([_facts(k) for k in keys])]
+    enumerators = "\n".join(_aligned([(f"{k.name},", c) for k, c in zip(keys, comments)], "    "))
+    constants = [(f"inline constexpr TypedKey<Key::{k.name}>", f"{k.name}{{}};", c) for k, c in zip(keys, comments)]
+    constants += [
+        (f"inline constexpr TypedKey<Key::{k.name}>", f"{k.short_name}{{}};", f"///< short name of {k.name}")
+        for k in keys if k.short_name is not None
     ]
-    if key.short_name is not None:
-        lines += [f"/// {key.short_name}: the short name of {key.name}, the same key.",
-                  f"inline constexpr TypedKey<Key::{key.name}> {key.short_name}{{}};"]
-    return "\n".join(lines)
+    attribute_lines = "\n".join(_aligned(constants))
+    return f"""/// Every key, in the order the specification defines them. Columns: value
+/// type, DICOM VR, multiplicity, DICOM attribute. I2S::info(key) holds the
+/// rest; the specification document describes each key.
+enum class Key : std::uint16_t {{
+{enumerators}
+}};
+
+/// A key as a type, so a value written under it is checked at compile time
+/// (I2S_Attributes.hpp).
+template <Key K>
+struct TypedKey {{
+    static constexpr Key key = K;
+}};
+
+/// The keys a program writes: attributes[I2S::Attribute::Manufacturer] = "Leica";
+/// One constant per key, then one per short name (the same key).
+namespace Attribute {{
+{attribute_lines}
+}} // namespace Attribute"""
 
 
 def emit_header(spec: Spec, digest: str) -> str:
     vr_names = "\n".join(f"    {vr.name}, ///< {_comment(vr.description)}" for vr in spec.value_representations)
     vr_rows = "\n".join(_vr_row(vr) for vr in spec.value_representations)
-    typed_keys = "\n\n".join(_typed_key(k) for k in spec.keys)
-    keys = "\n".join(
-        f"    {k.name}, ///< since {k.since}: {_comment(k.description)}" for k in spec.keys
-    )
     rows = "\n".join(_row(k) for k in spec.keys)
     return f"""{_banner(digest)}
 #ifndef I2S_KEYS_HPP
@@ -121,6 +157,17 @@ namespace I2S {{
 inline constexpr std::uint16_t kVersionMajor = {spec.version.major};
 inline constexpr std::uint16_t kVersionMinor = {spec.version.minor};
 inline constexpr bool kIsDraft = {'true' if spec.status == 'draft' else 'false'};
+
+// =============================================================================
+// The vocabulary
+// =============================================================================
+
+{_vocabulary(spec.keys)}
+
+// =============================================================================
+// The tables behind the vocabulary: VRs, value types, identity classes, each
+// key's facts (kKeys), and the lookups over them.
+// =============================================================================
 
 /// The DICOM value representations I2S writes a value as (PS3.5 section 6.2).
 enum class Vr : std::uint8_t {{
@@ -150,11 +197,6 @@ inline constexpr std::array<VrInfo, {len(spec.value_representations)}> kVrs{{{{
 
 {_enum("ValueType", "std::uint8_t", spec.value_types, "What a key's value is.")}
 {_enum("IdentityClass", "std::uint8_t", spec.identity_classes, "Whether a key's value can identify an individual.")}
-/// Every key of the vocabulary, in the order the specification defines them.
-enum class Key : std::uint16_t {{
-{keys}
-}};
-
 inline constexpr std::size_t kKeyCount = {len(spec.keys)};
 
 struct DicomTag {{
@@ -242,15 +284,6 @@ static_assert(
     }}
     return std::nullopt;
 }}
-
-/// A key as a type, so a value written under it is checked at compile time
-/// (I2S_Attributes.hpp). One constant per key and per short name follows.
-template <Key K>
-struct TypedKey {{
-    static constexpr Key key = K;
-}};
-
-{typed_keys}
 
 }} // namespace I2S
 

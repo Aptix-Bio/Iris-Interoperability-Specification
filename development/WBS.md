@@ -34,6 +34,7 @@ flowchart LR
     S3 --> S4["PythonAttributes_4"]
     S3 --> S5["VocabularyFromScanners_5"]
     S3 --> S6["IdentityClasses_6"]
+    S3 --> S9["ReadableHeadersAndExamples_9"]
     S5 --> S7["IfeAndIrisSlideAdoption_7"]
     S6 --> S7
     S4 --> S8["Release_8"]
@@ -44,7 +45,8 @@ flowchart LR
 |---|---|---|
 | SpecScaffold_1 | `ctest` green on a header generated from `spec/*.json`; the generator refuses a removed key, a retyped key and a duplicate name | `doing` (PR #1 open, carrying every sprint) |
 | SpecLintAndDocument_2 | `cmake --workflow --preset gates` runs the linter, the generator check, the tests and the AsciiDoc render, locally and on CI, and CI publishes the HTML and PDF | `doing` (in PR #1, CI green) |
-| TypedAttributes_3 | a vendor's C++ writes `attributes[I2S::ScanTime] = std::chrono::system_clock::now();` with completion and compile-time type checking; every value encoded as its DICOM VR; `I2S::Attributes` iterates, and adapts to and from IFE's attribute pairs | `doing` (in PR #1, CI green) |
+| TypedAttributes_3 | a vendor's C++ writes `attributes[I2S::Attribute::ScanTime] = std::chrono::system_clock::now();` (spelled `I2S::ScanTime` until ReadableHeadersAndExamples_9) with completion and compile-time type checking; every value encoded as its DICOM VR; `I2S::Attributes` iterates, and adapts to and from IFE's attribute pairs | `doing` (in PR #1, CI green) |
+| ReadableHeadersAndExamples_9 | `I2S_Keys.hpp` opens with the whole vocabulary, one line per key, spelled `I2S::Attribute::Manufacturer`; `I2S_Attributes.hpp` opens with the public declarations; the README shows writing attributes, reading them from a DICOM file, and writing them into an Iris slide | `doing` (in PR #1) |
 | PythonAttributes_4 | `attributes[I2S.ScanTime] = datetime.now(timezone.utc)` type-checks under mypy --strict from generated stubs, a naive datetime is refused at run time, and `Attributes` iterates | `todo` |
 | VocabularyFromScanners_5 | the keys every scanner family writes at scan time (stain, scan date and time, optics, resolution) generated and tested, each DICOM mapping verified | `todo` |
 | IdentityClasses_6 | every key's identity class decided by the maintainer; no key left `UNDER_REVIEW` that a release depends on | `blocked` on the maintainer's answers (Open questions) |
@@ -307,6 +309,79 @@ to `feature/SpecScaffold_1`, through pull request #1 (Decision_08).
   compile-fail cases pass under GCC too), artifact `i2s-specification`
   uploaded
 
+## ReadableHeadersAndExamples_9 — the vocabulary first, the implementation hidden `doing` · needs TypedAttributes_3
+
+Purpose (requested 2026-11-25): someone opening an installed header sees the
+vocabulary first, listed as an enumeration is, and the implementation after
+it; each key is spelled one way, `I2S::Attribute::Manufacturer`; and the
+README shows, in order and briefly, writing attributes, writing them from a
+DICOM file, and writing them into an Iris slide. Milestone: the first screen
+of the generated `I2S_Keys.hpp` lists every key with its value type, VR,
+multiplicity and DICOM attribute; the first screen of `I2S_Attributes.hpp` is
+declarations; the gates green. Committed to `feature/SpecScaffold_1`, through
+pull request #1 (Decision_08).
+
+- [x] **VocabularyFirst_9.1** — `generator/emit/cpp.py` writes, right after the
+  version constants, the `Key` enumeration, `TypedKey` and namespace
+  `I2S::Attribute` (one constant per key, then per short name) as aligned
+  one-line rows whose trailing `///<` comment (value type, VR, multiplicity,
+  DICOM tag and keyword) is what an IDE shows on hover; a divider, then the
+  tables (`Vr`, `VrInfo`, `ValueType`, `IdentityClass`, `KeyInfo`, `kKeys`,
+  each row headed by the key's description) and the lookups. The flat
+  `I2S::Manufacturer` spelling is removed (Decision_10) [ReadableHeaders_01]
+  - [x] Red: `tests/generator/test_header.py`, 3 failed (`StopIteration`: no
+    `namespace Attribute {` line); the build of the respelled tests and README:
+    `error: no member named 'Attribute' in namespace 'I2S'; did you mean
+    'Attributes'?`
+  - [x] Green: `uv run pytest` 64 passed; the new compile-fail case
+    `i2s_compile_fail_flat_spelling` passes on `error: no member named
+    'Manufacturer' in namespace 'I2S'; did you mean
+    'I2S::Attribute::Manufacturer'?`
+- [x] **PublicSurfaceFirst_9.2** — `include/I2S_Attributes.hpp` (174 lines, from
+  888) holds the declarations with one-line documentation: `Time`, `Value`,
+  `ValueOf`, `Error`, `Result`, `Pair`, `Element`, `Slot`, `Attributes`,
+  `is_phi`. The concepts its declarations are constrained on are in
+  `include/detail/I2S_Concepts.hpp`, included at its top; the codec and every
+  body in `include/detail/I2S_Attributes_impl.hpp`, included at its end, which
+  refuses to be included alone. Behaviour unchanged: the tests changed only
+  their spelling [ReadableHeaders_01]
+  - [x] Green: `i2s_attributes_tests` 17 of 17 earlier cases, the four
+    earlier compile-fail cases still naming their concepts (clang: `'const
+    char (&)[10]' does not satisfy 'DateTimeValue'`)
+- [x] **DicomSource_9.3** — `I2S::Attributes::from_dicom(lookup)`: `lookup` is
+  any callable from `I2S::DicomTag` to `std::optional<std::string>` (the
+  concept `DicomLookup`), called once per key that has a DICOM attribute;
+  trailing padding spaces are dropped (PS3.5 2026e section 6.2 pads a string
+  to an even length with a space and no VR I2S uses counts it, read
+  2026-11-25 from
+  https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html);
+  a value I2S refuses is kept in `errors()` as a refused write is, so a
+  writer can replace it [DicomSource_01]
+  - [x] Red: `error: no member named 'from_dicom' in 'I2S::Attributes'`
+  - [x] Green: `[DicomSource_01]`, 2 cases, 18 assertions; all attributes
+    tests 19 cases, 110 assertions
+- [x] **ReadmeExamples_9.4** — the README's three examples in order: writing
+  attributes; writing them from a DICOM file with DCMTK 3.7.1 (released
+  2026-10-15; `DcmFileFormat::loadFile(const OFFilename&, …)`,
+  `getDataset()`, `DcmItem::findAndGetOFStringArray(const DcmTagKey&,
+  OFString&, const OFBool searchIntoSub = OFFalse)`, `DcmTagKey(Uint16,
+  Uint16)`, read 2026-11-25 from the tag's headers at
+  https://github.com/DCMTK/dcmtk/tree/DCMTK-3.7.1/dcmdata/include/dcmtk/dcmdata);
+  writing them into an Iris slide through IFE's Builder
+  (`AttributeSizeEntry`, `AttributeSizesCreateInfo`, `AttributeBytesCreateInfo`,
+  `AttributesCreateInfo` with `MetadataFormats::METADATA_I2S`, as IFE's
+  `tests/ife_builder_fixture.hpp` writes them). The fence is the rule
+  (Decision_11): a ```` ```cpp ```` block is compiled and run by
+  `cmake/readme_examples.cmake`; a ```` ```c++ ```` block needs DCMTK or IFE
+  and is shown only [Readme_01, DicomSource_01]
+  - [x] The two ```` ```c++ ```` blocks, checked locally once:
+    `-fsyntax-only -Werror` against IFE's headers at 2e98483 (the tip of
+    IFE's `feature/ReviewBot_CI-3`), and against declarations copied from
+    DCMTK 3.7.1's headers, since DCMTK is not installed here
+- [ ] **VERIFY:** the maintainer reads the first screen of both headers and the
+  README
+- [ ] **Gate:** CI green on pull request #1
+
 ## PythonAttributes_4 — the same vocabulary, typed in Python `todo` · needs TypedAttributes_3
 
 Purpose (requested 2026-11-24): `attributes[I2S.ScanTime] =
@@ -390,6 +465,12 @@ not define, under `METADATA_I2S`.
 - [ ] **IfeText_7.1** — IFE's `spec/ife_constants.json` `METADATA_I2S`
   description points to this specification and its version (a pull request
   on IFE)
+- [ ] **EncoderTakesI2S_7.3** — Iris-Slide's encoder takes I2S attributes:
+  today `IrisSlide::EncodeSlideInfo` (Iris-Headers `include/IrisSlideTypes.hpp`
+  at 4c78915, the commit Iris-Slide's `feature/ReviewBot_17.8` pins) has no
+  field for them, and the encoder writes the pairs it reads from the source
+  with `METADATA_FREE_TEXT`, so the README writes I2S pairs through IFE's
+  Builder instead (found 2026-11-25)
 - [ ] **IrisSlideAllowlist_7.2** — Iris-Slide consumes the `i2s` CMake target
   by FetchContent at a pinned commit and uses `I2S::key_from_name` as its
   attribute allowlist; red: an encode with a key I2S does not define is
@@ -417,6 +498,8 @@ not define, under `METADATA_I2S`.
 | Decision_06 | 2026-11-24 | `DigitalSlideIdentifier` (`DSI`) is renamed `DigitalImageIdentifier` (`DII`) and its flag `DigitalImageIdentifierIsPHI` (`DII_is_PHI`), in place in the unreleased 0.1 group with no deprecated alias; the absent-means-PHI rule is unchanged. The gate still refuses a rename: the witness was refreshed by hand, deleting the two old entries, as the reviewed act that permits this one rename before the first release |
 | Decision_07 | 2026-11-24 | No public file quotes a person; goals and decisions are stated as dated requirements, and an owner is "the maintainer". Author lines in the specification header are attribution and stay |
 | Decision_08 | 2026-11-24 | One branch and one pull request per repository, with no stacked pull requests: every I2S sprint is committed to `feature/SpecScaffold_1` and lands through pull request #1, each sprint's commits distinct and its WBS section intact |
+| Decision_10 | 2026-11-25 | Each key is spelled one way, as a constant in namespace `I2S::Attribute` (`attributes[I2S::Attribute::Manufacturer] = "Leica";`); the flat `I2S::Manufacturer` spelling is removed before anyone depends on it. Short names live in the same namespace. The installed headers read vocabulary first: `I2S_Keys.hpp` lists every key on one line right after the version constants, and `I2S_Attributes.hpp` holds the public declarations, with the bodies in `include/detail/` |
+| Decision_11 | 2026-11-25 | The README's fence states whether an example is compiled: ```` ```cpp ```` is compiled and run as a test; ```` ```c++ ```` needs a library I2S does not build against (DCMTK, IFE) and is shown only |
 | Decision_09 | 2026-11-24 | Every attribute value is text, encoded as its DICOM VR (PS3.5 section 6.2): DATE_TIME as DT with its offset, INTEGER as IS, DECIMAL as DS, TEXT as the key's string VR, BOOLEAN as the CS values YES and NO; several values joined by the backslash. I2S defines the vocabulary and the text of a value; IFE's attribute block is the container. `I2S::Attributes` is an iterable adapter to and from IFE's (key name, value text) pairs |
 
 Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintainer's review:
@@ -445,6 +528,19 @@ Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintai
   keeps its order, since a `// MARK` comment heads the section after it.
 - The format check runs in `--validate`, `--check` and `--fix`, and not in the
   configure-time generation, so a hand edit still builds and the gates catch it.
+- ReadableHeadersAndExamples_9: I2S has no install rules; a consumer builds
+  against the source tree (IrisSlideAllowlist_7.2 uses FetchContent). The
+  detail headers are reached by a path relative to the public header
+  (`detail/I2S_Concepts.hpp`), so an install rule, when one is added, copies
+  `include/` whole with `generated_source/I2S_Keys.hpp` beside it.
+- ReadableHeadersAndExamples_9: the key descriptions moved from the hover
+  documentation of each constant to a comment above each `kKeys` row, so the
+  vocabulary block stays one line per key; the hover shows the value type,
+  VR, multiplicity and DICOM attribute.
+- ReadableHeadersAndExamples_9: `from_dicom` keeps a refused DICOM value in
+  `errors()` instead of failing the whole read, so one value DICOM allows and
+  I2S refuses (a DT without its offset) is replaced by a typed write rather
+  than losing every other attribute.
 - `deprecated` is witnessed as a boolean (set or not); its reason may be
   reworded.
 - The document is rendered through `bundle exec` from a committed
@@ -485,8 +581,16 @@ Judgment calls made in SpecScaffold_1 and SpecLintAndDocument_2, for the maintai
    before the first release); a scanner with UDIs from several issuing
    agencies records one. An IFE nested attribute could carry DICOM's UDI
    Sequence whole, if the maintainer wants every UDI.
+8. **The I2S version in IFE's attribute block.** IFE's `ATTRIBUTES.VERSION` is
+   a u16 holding "the Iris Interoperability Specification version for
+   METADATA_I2S", and I2S's version is a major and a minor (0.1). How the
+   two are packed into 16 bits is not defined by either specification, so
+   the README's Iris slide example leaves VERSION at its default (found
+   2026-11-25).
 
 ## Session log
 
 - 2026-11-24 — SpecScaffold_1: README on `main`; spec, generator, header,
   tests, document, this folder and CI on `feature/SpecScaffold_1`.
+- 2026-11-25 — ReadableHeadersAndExamples_9: headers vocabulary first,
+  `I2S::Attribute`, `from_dicom`, the README's three examples.

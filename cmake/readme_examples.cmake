@@ -4,6 +4,11 @@
 # from the library. A block runs in its own scope with an `attributes` in
 # reach, so an example may declare its own or use the one before it.
 #
+# The fence is the rule (decided 2026-11-25): ```cpp marks an example that
+# needs only I2S and is compiled here; ```c++ marks one that needs a library
+# I2S does not build against (a DICOM toolkit, IFE's Builder) and is skipped,
+# since its headers are not available to this build.
+#
 #   cmake -DREADME=<README.md> -DOUT=<file.cpp> -P cmake/readme_examples.cmake
 cmake_minimum_required(VERSION 3.25)
 file(READ "${README}" text)
@@ -27,5 +32,5 @@ foreach(block IN LISTS blocks)
     string(APPEND calls "    readme_example_${index}(attributes);\n")
     math(EXPR index "${index} + 1")
 endforeach()
-string(APPEND source "int main()\n{\n    I2S::Attributes attributes;\n    attributes[I2S::Manufacturer] = \"Leica\";\n${calls}    return 0;\n}\n")
+string(APPEND source "int main()\n{\n    I2S::Attributes attributes;\n    attributes[I2S::Attribute::Manufacturer] = \"Leica\";\n${calls}    return 0;\n}\n")
 file(WRITE "${OUT}" "${source}")

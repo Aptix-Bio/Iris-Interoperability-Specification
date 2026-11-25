@@ -7,6 +7,6 @@
 int main()
 {
     I2S::Attributes attributes;
-    attributes[I2S::ScanTime] = "yesterday";
+    attributes[I2S::Attribute::ScanTime] = "yesterday";
     return 0;
 }

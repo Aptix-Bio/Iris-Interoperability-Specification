@@ -7,6 +7,6 @@
 int main()
 {
     I2S::Attributes attributes;
-    attributes[I2S::Manufacturer] = 42;
+    attributes[I2S::Attribute::Manufacturer] = 42;
     return 0;
 }

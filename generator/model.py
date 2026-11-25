@@ -61,9 +61,10 @@ _DS = re.compile(r"[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]+)?")
 _IS = re.compile(r"[+-]?[0-9]+")
 _CS = re.compile(r"[A-Z0-9 _]+")
 TEXT = "TEXT"
-# Names the generated and hand-written C++ already declare in namespace I2S. A
-# key or short name equal to one would collide with it, since every key and
-# short name becomes an I2S:: constant.
+# Names the generated and hand-written C++ already declare in namespace I2S.
+# Every key and short name becomes a constant in I2S::Attribute, whose lines
+# name Key and TypedKey unqualified, so a key named like one of these would
+# shadow it there; the whole set stays reserved so a key never reads as API.
 RESERVED_NAMES = frozenset({
     "Attributes", "DicomAttribute", "DicomSequence", "DicomTag", "Element", "Error", "IdentityClass", "Key",
     "KeyInfo", "Multiplicity", "Pair", "PhiFlag", "Result", "Slot", "Time", "TypedKey", "Value", "ValueOf",

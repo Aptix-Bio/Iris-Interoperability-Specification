@@ -1,6 +1,6 @@
 // I2S::Attributes: typed keys, the DICOM text of each value, the adapter to and
 // from IFE's (key name, value text) attribute pairs, and iteration.
-// RTM TypedKeys_01, Encoding_01, Adapter_01, Iteration_01, PhiFlag_02
+// RTM TypedKeys_01, Encoding_01, Adapter_01, Iteration_01, PhiFlag_02, DicomSource_01
 #include "I2S_Attributes.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -8,6 +8,8 @@
 #include <chrono>
 #include <cstdint>
 #include <limits>
+#include <map>
+#include <optional>
 #include <ranges>
 #include <string>
 #include <type_traits>
@@ -33,12 +35,12 @@ std::string text_of(const I2S::Attributes& attributes, I2S::Key key)
 
 } // namespace
 
-TEST_CASE("every key and short name is a typed constant in namespace I2S", "[TypedKeys_01]")
+TEST_CASE("every key and short name is a typed constant in namespace I2S::Attribute", "[TypedKeys_01]")
 {
-    STATIC_REQUIRE(std::is_same_v<decltype(I2S::Manufacturer), const I2S::TypedKey<I2S::Key::Manufacturer>>);
-    STATIC_REQUIRE(std::is_same_v<decltype(I2S::DII), decltype(I2S::DigitalImageIdentifier)>);
-    STATIC_REQUIRE(std::is_same_v<decltype(I2S::DII_is_PHI), decltype(I2S::DigitalImageIdentifierIsPHI)>);
-    STATIC_REQUIRE(std::is_same_v<decltype(I2S::ScanTime), decltype(I2S::AcquisitionDateTime)>);
+    STATIC_REQUIRE(std::is_same_v<decltype(I2S::Attribute::Manufacturer), const I2S::TypedKey<I2S::Key::Manufacturer>>);
+    STATIC_REQUIRE(std::is_same_v<decltype(I2S::Attribute::DII), decltype(I2S::Attribute::DigitalImageIdentifier)>);
+    STATIC_REQUIRE(std::is_same_v<decltype(I2S::Attribute::DII_is_PHI), decltype(I2S::Attribute::DigitalImageIdentifierIsPHI)>);
+    STATIC_REQUIRE(std::is_same_v<decltype(I2S::Attribute::ScanTime), decltype(I2S::Attribute::AcquisitionDateTime)>);
     STATIC_REQUIRE(std::is_same_v<I2S::ValueOf<I2S::Key::AcquisitionDateTime>, I2S::Time>);
     STATIC_REQUIRE(std::is_same_v<I2S::ValueOf<I2S::Key::SoftwareVersions>, std::vector<std::string>>);
     STATIC_REQUIRE(I2S::info(I2S::Key::AcquisitionDateTime).vr == I2S::Vr::DT);
@@ -47,30 +49,30 @@ TEST_CASE("every key and short name is a typed constant in namespace I2S", "[Typ
 TEST_CASE("TEXT round-trips as its key's VR", "[Encoding_01]")
 {
     I2S::Attributes attributes;
-    attributes[I2S::Manufacturer] = "Leica";
-    attributes[I2S::ManufacturerModelName] = std::string{"GT450"};
+    attributes[I2S::Attribute::Manufacturer] = "Leica";
+    attributes[I2S::Attribute::ManufacturerModelName] = std::string{"GT450"};
     CHECK(text_of(attributes, I2S::Key::Manufacturer) == "Leica");
-    CHECK(attributes.get(I2S::ManufacturerModelName) == std::optional<std::string>{"GT450"});
-    CHECK_FALSE(attributes.get(I2S::DeviceSerialNumber).has_value());
+    CHECK(attributes.get(I2S::Attribute::ManufacturerModelName) == std::optional<std::string>{"GT450"});
+    CHECK_FALSE(attributes.get(I2S::Attribute::DeviceSerialNumber).has_value());
 }
 
 TEST_CASE("several TEXT values are joined by the backslash", "[Encoding_01]")
 {
     I2S::Attributes attributes;
-    attributes[I2S::SoftwareVersions] = {"Console 1.2", "Firmware 3.4"};
+    attributes[I2S::Attribute::SoftwareVersions] = {"Console 1.2", "Firmware 3.4"};
     CHECK(text_of(attributes, I2S::Key::SoftwareVersions) == "Console 1.2\\Firmware 3.4");
-    CHECK(attributes.get(I2S::SoftwareVersions) == std::optional<std::vector<std::string>>{{"Console 1.2", "Firmware 3.4"}});
+    CHECK(attributes.get(I2S::Attribute::SoftwareVersions) == std::optional<std::vector<std::string>>{{"Console 1.2", "Firmware 3.4"}});
 }
 
 TEST_CASE("DATE_TIME is a DT in UTC, to the microsecond, with its offset", "[Encoding_01]")
 {
     I2S::Attributes attributes;
-    attributes[I2S::ScanTime] = kScan;
+    attributes[I2S::Attribute::ScanTime] = kScan;
     CHECK(text_of(attributes, I2S::Key::AcquisitionDateTime) == "20261124153000.123456+0000");
-    CHECK(attributes.get(I2S::ScanTime) == std::optional<I2S::Time>{kScan});
+    CHECK(attributes.get(I2S::Attribute::ScanTime) == std::optional<I2S::Time>{kScan});
     // A nanosecond clock is floored to the microsecond it falls in.
-    attributes[I2S::ScanTime] = std::chrono::sys_time<std::chrono::nanoseconds>{kScan} + 999ns;
-    CHECK(attributes.get(I2S::ScanTime) == std::optional<I2S::Time>{kScan});
+    attributes[I2S::Attribute::ScanTime] = std::chrono::sys_time<std::chrono::nanoseconds>{kScan} + 999ns;
+    CHECK(attributes.get(I2S::Attribute::ScanTime) == std::optional<I2S::Time>{kScan});
 }
 
 TEST_CASE("a DT with another offset or fewer fractional digits reads as UTC", "[Encoding_01]")
@@ -152,7 +154,7 @@ TEST_CASE("every VR's example in the spec reads through the codec", "[Encoding_0
 TEST_CASE("a write the VR refuses is reported by name, and the pairs refuse it", "[Adapter_01]")
 {
     I2S::Attributes attributes;
-    attributes[I2S::Manufacturer] = std::string(65, 'A');
+    attributes[I2S::Attribute::Manufacturer] = std::string(65, 'A');
     CHECK_FALSE(attributes.text(I2S::Key::Manufacturer).has_value());
     REQUIRE(attributes.errors().size() == 1);
     const I2S::Error& error = attributes.errors().front();
@@ -161,22 +163,22 @@ TEST_CASE("a write the VR refuses is reported by name, and the pairs refuse it",
     CHECK(error.message.find("64") != std::string::npos);
     CHECK(error.message.find("65") != std::string::npos);
     CHECK_FALSE(attributes.to_pairs().has_value());
-    CHECK_FALSE(attributes.set(I2S::Manufacturer, std::string(65, 'A')).has_value());
+    CHECK_FALSE(attributes.set(I2S::Attribute::Manufacturer, std::string(65, 'A')).has_value());
 }
 
 TEST_CASE("the pairs round-trip, in the spec's key order", "[Adapter_01]")
 {
     I2S::Attributes attributes;
-    attributes[I2S::ScanTime] = kScan;
-    attributes[I2S::Manufacturer] = "Leica";
-    attributes[I2S::DII_is_PHI] = false;
+    attributes[I2S::Attribute::ScanTime] = kScan;
+    attributes[I2S::Attribute::Manufacturer] = "Leica";
+    attributes[I2S::Attribute::DII_is_PHI] = false;
     const Pairs pairs = attributes.to_pairs().value();
     CHECK(pairs == Pairs{{"DigitalImageIdentifierIsPHI", "NO"},
                          {"Manufacturer", "Leica"},
                          {"AcquisitionDateTime", "20261124153000.123456+0000"}});
     const I2S::Attributes read = I2S::Attributes::from_pairs(pairs).value();
     CHECK(read.to_pairs().value() == pairs);
-    CHECK(read.get(I2S::ScanTime) == std::optional<I2S::Time>{kScan});
+    CHECK(read.get(I2S::Attribute::ScanTime) == std::optional<I2S::Time>{kScan});
 }
 
 TEST_CASE("pairs that are not I2S are refused naming the key and the text", "[Adapter_01]")
@@ -198,9 +200,9 @@ TEST_CASE("Attributes is a forward range of elements in the spec's key order", "
     STATIC_REQUIRE(std::ranges::forward_range<I2S::Attributes>);
     STATIC_REQUIRE(std::ranges::forward_range<const I2S::Attributes>);
     I2S::Attributes attributes;
-    attributes[I2S::ScanTime] = kScan;
-    attributes[I2S::SoftwareVersions] = {"1.0", "2.0"};
-    attributes[I2S::DII] = "S26-1";
+    attributes[I2S::Attribute::ScanTime] = kScan;
+    attributes[I2S::Attribute::SoftwareVersions] = {"1.0", "2.0"};
+    attributes[I2S::Attribute::DII] = "S26-1";
     std::vector<I2S::Key> order;
     for (const auto& element : attributes) {
         order.push_back(element.key());
@@ -221,8 +223,8 @@ TEST_CASE("Attributes is a forward range of elements in the spec's key order", "
 TEST_CASE("attributes read from pairs iterate as the ones written", "[Iteration_01]")
 {
     I2S::Attributes written;
-    written[I2S::Manufacturer] = "Leica";
-    written[I2S::ScanTime] = kScan;
+    written[I2S::Attribute::Manufacturer] = "Leica";
+    written[I2S::Attribute::ScanTime] = kScan;
     const I2S::Attributes read = I2S::Attributes::from_pairs(written.to_pairs().value()).value();
     std::vector<std::pair<std::string, std::string>> a;
     std::vector<std::pair<std::string, std::string>> b;
@@ -238,12 +240,76 @@ TEST_CASE("attributes read from pairs iterate as the ones written", "[Iteration_
 TEST_CASE("a DII written without DII_is_PHI is treated as PHI", "[PhiFlag_02]")
 {
     I2S::Attributes attributes;
-    attributes[I2S::DII] = "S26-1";
-    CHECK(I2S::is_phi(attributes, I2S::DII));
+    attributes[I2S::Attribute::DII] = "S26-1";
+    CHECK(I2S::is_phi(attributes, I2S::Attribute::DII));
     const I2S::Attributes read = I2S::Attributes::from_pairs(attributes.to_pairs().value()).value();
-    CHECK(I2S::is_phi(read, I2S::DII));
-    attributes[I2S::DII_is_PHI] = false;
-    CHECK_FALSE(I2S::is_phi(attributes, I2S::DII));
-    attributes[I2S::DII_is_PHI] = true;
-    CHECK(I2S::is_phi(attributes, I2S::DII));
+    CHECK(I2S::is_phi(read, I2S::Attribute::DII));
+    attributes[I2S::Attribute::DII_is_PHI] = false;
+    CHECK_FALSE(I2S::is_phi(attributes, I2S::Attribute::DII));
+    attributes[I2S::Attribute::DII_is_PHI] = true;
+    CHECK(I2S::is_phi(attributes, I2S::Attribute::DII));
+}
+
+namespace {
+
+// A DICOM data set as a DICOM library would present it: each attribute's
+// value as DICOM text, padded to an even length with a trailing space as
+// PS3.5 section 6.2 pads a string, and the UDI in its sequence item.
+std::optional<std::string> from_data_set(const std::map<std::pair<std::uint16_t, std::uint16_t>, std::string>& data_set,
+                                         I2S::DicomTag tag)
+{
+    const auto found = data_set.find({tag.group, tag.element});
+    return found == data_set.end() ? std::nullopt : std::optional<std::string>{found->second};
+}
+
+const std::map<std::pair<std::uint16_t, std::uint16_t>, std::string> kDataSet{
+    {{0x0008, 0x0070}, "Leica "},
+    {{0x0008, 0x1090}, "GT450"},
+    {{0x0018, 0x1020}, "Console 1.2\\Firmware 3.4 "},
+    {{0x0018, 0x1009}, "(01)00812345678901"},
+    {{0x0008, 0x002A}, "20261124103000.123456-0500 "},
+    {{0x0010, 0x0010}, "Doe^Jane"},
+};
+
+} // namespace
+
+// RTM DicomSource_01
+TEST_CASE("attributes read from a DICOM data set keep its text, without its padding", "[DicomSource_01]")
+{
+    std::vector<I2S::DicomTag> asked;
+    const I2S::Attributes attributes = I2S::Attributes::from_dicom([&](I2S::DicomTag tag) {
+        asked.push_back(tag);
+        return from_data_set(kDataSet, tag);
+    });
+    CHECK(attributes.errors().empty());
+    CHECK(text_of(attributes, I2S::Key::Manufacturer) == "Leica");
+    CHECK(text_of(attributes, I2S::Key::SoftwareVersions) == "Console 1.2\\Firmware 3.4");
+    CHECK(text_of(attributes, I2S::Key::UniqueDeviceIdentifier) == "(01)00812345678901");
+    CHECK(attributes.get(I2S::Attribute::ScanTime) == std::optional<I2S::Time>{kScan});
+    // Keys with no DICOM attribute are never asked for, and nothing outside I2S is read.
+    CHECK_FALSE(attributes.text(I2S::Key::DigitalImageIdentifier).has_value());
+    CHECK_FALSE(attributes.text(I2S::Key::DeviceSerialNumber).has_value());
+    std::size_t with_dicom = 0;
+    for (const I2S::KeyInfo& row : I2S::kKeys) {
+        with_dicom += row.dicom.has_value() ? 1 : 0;
+    }
+    CHECK(asked.size() == with_dicom);
+    CHECK(attributes.to_pairs().value().size() == 5);
+}
+
+TEST_CASE("a DICOM value I2S refuses is reported by key, and a typed write replaces it", "[DicomSource_01]")
+{
+    I2S::Attributes attributes = I2S::Attributes::from_dicom([](I2S::DicomTag tag) -> std::optional<std::string> {
+        if (tag == I2S::info(I2S::Key::AcquisitionDateTime).dicom->tag) {
+            return "20261124103000"; // DICOM allows a DT without its offset; I2S requires one
+        }
+        return std::nullopt;
+    });
+    REQUIRE(attributes.errors().size() == 1);
+    CHECK(attributes.errors().front().key == I2S::Key::AcquisitionDateTime);
+    CHECK(attributes.errors().front().message.find("AcquisitionDateTime") != std::string::npos);
+    CHECK(attributes.errors().front().message.find("no UTC offset") != std::string::npos);
+    CHECK_FALSE(attributes.to_pairs().has_value());
+    attributes[I2S::Attribute::ScanTime] = kScan;
+    CHECK(attributes.to_pairs().has_value());
 }

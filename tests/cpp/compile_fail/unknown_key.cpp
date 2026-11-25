@@ -7,6 +7,6 @@
 int main()
 {
     I2S::Attributes attributes;
-    attributes[I2S::NoSuchKey] = "Leica";
+    attributes[I2S::Attribute::NoSuchKey] = "Leica";
     return 0;
 }

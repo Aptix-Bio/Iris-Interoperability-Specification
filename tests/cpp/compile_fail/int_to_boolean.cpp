@@ -7,6 +7,6 @@
 int main()
 {
     I2S::Attributes attributes;
-    attributes[I2S::DII_is_PHI] = 1;
+    attributes[I2S::Attribute::DII_is_PHI] = 1;
     return 0;
 }

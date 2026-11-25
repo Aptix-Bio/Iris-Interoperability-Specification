@@ -38,7 +38,10 @@ set(compile_fail_text_to_date_time "DateTimeValue")
 set(compile_fail_int_to_text "TextValue")
 set(compile_fail_int_to_boolean "BooleanValue")
 set(compile_fail_unknown_key "NoSuchKey")
-foreach(case text_to_date_time int_to_text int_to_boolean unknown_key)
+# RTM ReadableHeaders_01
+# The flat spelling I2S::Manufacturer was replaced by I2S::Attribute::Manufacturer.
+set(compile_fail_flat_spelling "Manufacturer")
+foreach(case text_to_date_time int_to_text int_to_boolean unknown_key flat_spelling)
     add_executable(i2s_compile_fail_${case} EXCLUDE_FROM_ALL cpp/compile_fail/${case}.cpp)
     target_link_libraries(i2s_compile_fail_${case} PRIVATE I2S::i2s)
     add_test(NAME i2s_compile_fail_${case}
@@ -107,7 +110,7 @@ add_test(NAME i2s_document COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DI
 set_tests_properties(i2s_generator_check PROPERTIES DEPENDS i2s_lint)
 set(i2s_tests i2s_pytest i2s_mypy i2s_keys_tests i2s_renamed_key_fails_to_compile i2s_attributes_tests
     i2s_compile_fail_text_to_date_time i2s_compile_fail_int_to_text i2s_compile_fail_int_to_boolean
-    i2s_compile_fail_unknown_key i2s_readme_examples)
+    i2s_compile_fail_unknown_key i2s_compile_fail_flat_spelling i2s_readme_examples)
 set_tests_properties(${i2s_tests} PROPERTIES DEPENDS i2s_generator_check)
 set_tests_properties(i2s_document_refuses_printed_include i2s_document_refuses_missing_include
     i2s_document_refuses_unincluded_table
