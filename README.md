@@ -30,6 +30,10 @@ The values that a renderer needs (pixel spacing, magnification, focal planes) an
    *Journal of Pathology Informatics* 19, 100510 (2025).
    <https://doi.org/10.1016/j.jpi.2025.100510>
 
+## Adding Keys to I2S
+
+If you believe additional keys should be added to I2S, please open a [github issue](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/issues) and we will review the request for addition into the keys for future versions. Include DICOM Tag if it corresponds with an established entry.
+
 ## Using I2S
 
 I2S installs one header, `I2S.hpp`, and a CMake package:
