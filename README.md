@@ -1,13 +1,10 @@
 # Iris Interoperability Specification (I2S)
 
-I2S is the vocabulary of slide-level facts that a whole-slide image carries
-from the moment it is scanned: what the slide is (its Digital Image
-Identifier) and which device scanned it, and later when and how it was
-scanned (the time, the optics and the focus). What the laboratory or the
-health record knows, such as the stain and the fixative, travels as HL7/FHIR
-in the clinical metadata stream. Each fact is a named key with a stated value type, its DICOM
-counterpart where one exists, and an identity class saying whether it can
-identify a person.
+I2S is the vocabulary of facts a whole-slide image carries from the moment it
+is scanned: its Digital Image Identifier, the device that scanned it, and how
+and when it was scanned. Each fact is a named key with a stated value type,
+its DICOM counterpart where one exists, and an identity class saying whether
+it can identify a person.
 
 The specification is a versioned, append-only JSON document (`spec/`) that a
 generator (`generator/`) compiles into a C++20 header and a readable
@@ -15,17 +12,29 @@ specification document, as the Iris File Extension (IFE) does with its own
 `spec/*.json`. A key that is renamed in the JSON breaks every program that
 uses its old name at compile time, so the JSON stays the one source.
 
-## Providence
-**Iris splits acquisition metadata from optional patient information**
+## Provenance
 
-DICOM blends immutable / indelible file attributes with clinical metadata
-(protected patient health information). Iris instead splits file / laboratory
-metadata such as the acquisition metadata, timing, and unique digital image
-identifier from the clinical metadata that may be patient identifiable. 
+I2S records what the scanner knows at scan time, including what it reads from
+the slide's label. Those facts never change, so they are written once into the
+slide file as indelible acquisition metadata (`METADATA_I2S` in an IFE file).
 
-Clinical information can be optionally encoded in a iris slide but not within
-the `METADATA_I2S` and instead should be encoded within the clinical metadata
-block within HL7 compatible streams.
+Clinical data does not belong here. What the laboratory information system or
+the health record knows (specimen preparation, stain, anatomic site,
+diagnosis, patient identity) changes after the scan and travels separately, as
+HL7/FHIR: optionally inside the slide, in IFE's clinical metadata stream,
+which can be removed without touching the image. DICOM keeps both in one
+record; mutable clinical metadata inside an immutable image container carries
+more risk than benefit [1, 2].
+
+The numbers a renderer needs (pixel spacing, magnification, focal planes) are
+part of the IFE format itself, not I2S keys.
+
+1. P. Gershkovich, "Wearing a fur coat in the summertime: Should digital
+   pathology redefine medical imaging?" *Journal of Pathology Informatics* 18,
+   100450 (2025). <https://doi.org/10.1016/j.jpi.2025.100450>
+2. P. Gershkovich, "Digital Pathology Standards: A Response to WG-26."
+   *Journal of Pathology Informatics* 19, 100510 (2025).
+   <https://doi.org/10.1016/j.jpi.2025.100510>
 
 ## Using I2S
 
