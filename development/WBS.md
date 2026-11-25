@@ -565,7 +565,7 @@ The 2026-11-24 list, kept for the record:
   and a `code_sets` section had stain and fixative as their only users, and
   Decision_17 moved both to FHIR. The research is kept as
   `analysis/dicom_code_sets_2026-11-25.md`
-- [x] **ScanTimeKeys_5.3** — the keys Decision_16 accepts that DICOM writes as
+- [x] **ScanTimeKeys_5.3** — commit [e18f553](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/commit/e18f553e96c310aebb12565129c1e92f2353d074). the keys Decision_16 accepts that DICOM writes as
   one value: `BurnedInAnnotation` (0028,0301) and `ExtendedDepthOfField`
   (0048,0012), BOOLEAN; `ObjectiveLensNumericalAperture` (0048,0113), DECIMAL,
   in the items of the Optical Path Sequence (0048,0105); `FocusMethod`
@@ -574,12 +574,12 @@ The 2026-11-24 list, kept for the record:
   PS3.6 2026e and PS3.3 2026e C.8.12.4 and C.8.12.5 [ScanTimeKeys_01]
   - [x] Red: `uv run pytest`, `test_the_scan_time_keys_carry_their_dicom_attributes`
     `KeyError: 'BurnedInAnnotation'`; the build of `keys_tests.cpp`: "no member
-    named 'BurnedInAnnotation' in 'I2S::Key'"
+    named 'BurnedInAnnotation' in 'I2S::Key'" [28beb53](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/commit/28beb53d43cb06fb5397303a597de503e6a54442)
   - [x] Green: `uv run pytest` 87 passed; `[ScanTimeKeys_01]` in
     `i2s_keys_tests` (9 cases, 48 assertions) and `i2s_attributes_tests` (22
     cases, 133 assertions), the four keys read from a DICOM data set as `bool`,
-    `double` and `I2S::FocusMethod`; `cmake --workflow --preset gates` 21 of 21
-- [x] **EnumeratedValues_5.4** — the value type `ENUMERATED` (Decision_18): a key
+    `double` and `I2S::FocusMethod`; `cmake --workflow --preset gates` 21 of 21 [e18f553](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/commit/e18f553e96c310aebb12565129c1e92f2353d074)
+- [x] **EnumeratedValues_5.4** — commit [e18f553](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/commit/e18f553e96c310aebb12565129c1e92f2353d074). the value type `ENUMERATED` (Decision_18): a key
   lists its values, each a CS term that names a C++ enumerator; the header
   gives each such key a scoped enumeration right after namespace
   `I2S::Attribute` (`I2S::FocusMethod::AUTO`), `KeyInfo::values` and
@@ -588,14 +588,14 @@ The 2026-11-24 list, kept for the record:
   values are append-only [Enumerated_01]
   - [x] Red: `uv run pytest`, 15 failed, 72 passed (`KeyError: 'FocusMethod'`;
     `AttributeError: 'Key' object has no attribute 'values'`); the build of
-    the C++ tests: "no member named 'FocusMethod' in 'I2S::Key'"
+    the C++ tests: "no member named 'FocusMethod' in 'I2S::Key'" [28beb53](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/commit/28beb53d43cb06fb5397303a597de503e6a54442)
   - [x] Green: `uv run pytest` 87 passed (`test_enumerated.py` 14,
     `test_header.py` 6); `[Enumerated_01]` green; the new compile-fail case
     `i2s_compile_fail_text_to_enumerated` passes on clang's `no viable
     overloaded '='` … `'EnumeratedValue<const char (&)[5], (I2S::Key)10Ui16>'
     evaluated to false`; `--validate` and `--check` clean after
     `--refresh-witness` recorded 13 additions (the type, four keys, eight
-    `values` fields)
+    `values` fields) [e18f553](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/commit/e18f553e96c310aebb12565129c1e92f2353d074)
 - [ ] **IlluminationType_5.5** — blocked on open question 10: DICOM codes the
   illumination method as one or more items of the Illumination Type Code
   Sequence (0022,0016), inside the Optical Path Sequence, from the Extensible
