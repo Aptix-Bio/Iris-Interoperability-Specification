@@ -397,7 +397,7 @@ single-file libraries in the stb style do. Milestone: `cmake --install` writes
 that prefix alone includes `<I2S.hpp>` and runs; the gates green. Committed to
 `feature/SpecScaffold_1`, through pull request #1 (Decision_08).
 
-- [x] **KeysFirst_10.1** — `generator/emit/cpp.py` writes namespace
+- [x] **KeysFirst_10.1** — commit fa87f2f. `generator/emit/cpp.py` writes namespace
   `I2S::Attribute` as the first code after the includes, preceded only by the
   `Key` enumeration (names only, wrapped, so it stays four lines) and
   `TypedKey`, which the constants are declared with; each constant carries
@@ -410,7 +410,7 @@ that prefix alone includes `<I2S.hpp>` and runs; the gates green. Committed to
     (3 == 0)` (the version constants came before the `Key` enumeration) and
     `StopIteration` (no constant with a documentation block)
   - [x] Green: `uv run pytest` 70 passed
-- [x] **OneHeader_10.2** — the generator stitches `generated_source/I2S.hpp`:
+- [x] **OneHeader_10.2** — commit fa87f2f. the generator stitches `generated_source/I2S.hpp`:
   include guard `I2S_HPP`, the standard includes of every part once, the
   vocabulary and tables of `I2S_Keys.hpp`, then the lines between the
   `// BEGIN I2S.hpp` and `// END I2S.hpp` markers of
@@ -426,7 +426,7 @@ that prefix alone includes `<I2S.hpp>` and runs; the gates green. Committed to
     `ImportError: cannot import name 'SOURCES' from 'generator.emit.cpp'`; the
     build of the respelled tests: `fatal error: 'I2S.hpp' file not found`
   - [x] Green: `test_single_header.py` 5 passed; all 20 gates
-- [x] **ImplementationGuard_10.3** — the non-template function bodies (the
+- [x] **ImplementationGuard_10.3** — commit fa87f2f. the non-template function bodies (the
   codec, `Element`'s members, `Attributes::keep`, `text`, `errors`,
   `to_pairs`, `from_pairs`, `begin`, `end`, `check_pair`, and the codec's
   helpers) are under `#ifdef I2S_IMPLEMENTATION`, none `inline`; helpers only
@@ -447,7 +447,7 @@ that prefix alone includes `<I2S.hpp>` and runs; the gates green. Committed to
     define fails with `undefined reference to I2S::Attributes::to_pairs`.
     Two units both defining it fail with `duplicate symbol` (checked once by
     hand, not a gate)
-- [x] **Install_10.4** — `CMakeLists.txt` installs `I2S.hpp` into
+- [x] **Install_10.4** — commit fa87f2f. `CMakeLists.txt` installs `I2S.hpp` into
   `<prefix>/include` and the package `I2SConfig.cmake`, `I2STargets.cmake`
   (target `I2S::i2s`) and `I2SConfigVersion.cmake` (version 0.1,
   `SameMinorVersion`, architecture-independent) into `<prefix>/lib/cmake/I2S`;
