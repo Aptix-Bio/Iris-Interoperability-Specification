@@ -167,6 +167,9 @@ def _keys_body(spec: Spec) -> str:
 /// The version of the {spec.name} this header was generated from.
 inline constexpr std::uint16_t kVersionMajor = {spec.version.major};
 inline constexpr std::uint16_t kVersionMinor = {spec.version.minor};
+/// This version as IFE's ATTRIBUTES.VERSION carries it under METADATA_I2S:
+/// major << 8 | minor, so 0.1 is 0x0001 and 1.0 is 0x0100 (decided 2026-11-25).
+inline constexpr std::uint16_t kIfeAttributesVersion = static_cast<std::uint16_t>(kVersionMajor << 8 | kVersionMinor);
 inline constexpr bool kIsDraft = {'true' if spec.status == 'draft' else 'false'};
 
 /// The DICOM value representations I2S writes a value as (PS3.5 section 6.2).

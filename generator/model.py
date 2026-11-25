@@ -35,6 +35,8 @@ RATIFIED = "ratified"
 
 HEADER_FIELDS = ("name", "abbreviation", "repository", "version", "status", "revisions")
 VERSION_FIELDS = ("major", "minor")
+# The largest major or minor version that packs into IFE's ATTRIBUTES.VERSION (one byte each).
+IFE_VERSION_PART_MAX = 0xFF
 REVISION_FIELDS = ("version", "status", "date", "authors", "summary")
 KEYS_DOCUMENT_FIELDS = ("value_representations", "value_types", "identity_classes", "keys")
 SECTION_FIELDS = ("description", "i2s_version")
@@ -560,6 +562,12 @@ def _parse_header(header_doc: Json) -> tuple[dict[str, Json], Version, str, tupl
     major, minor = raw_version.get("major"), raw_version.get("minor")
     if not isinstance(major, int) or isinstance(major, bool) or not isinstance(minor, int) or isinstance(minor, bool):
         raise SpecError(f"header.version: expected integer major and minor, found {raw_version!r}")
+    # IFE's ATTRIBUTES.VERSION carries the version as major << 8 | minor in a
+    # u16 (decided 2026-11-25), so each half must fit a byte. RTM Adoption_03
+    for part, value in (("major", major), ("minor", minor)):
+        if not 0 <= value <= IFE_VERSION_PART_MAX:
+            raise SpecError(f"header.version: {part} {value} does not fit the byte IFE's "
+                            f"ATTRIBUTES.VERSION gives it (0 to {IFE_VERSION_PART_MAX})")
     version = Version(major, minor)
     revisions = _revisions(header)
     if version != revisions[-1].version:

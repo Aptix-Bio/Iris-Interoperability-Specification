@@ -101,8 +101,9 @@ attribute block in place of any pairs the source file carried
 ```c++
 IrisSlide::EncodeSlideInfo info {.srcFilePath = "slide.svs", .desiredEncoding = IrisSlide::TILE_ENCODING_JPEG};
 info.attributes.type    = IrisSlide::METADATA_I2S;
-info.attributes.version = static_cast<std::uint16_t>(I2S::kVersionMajor << 8 | I2S::kVersionMinor); // proposed packing
-for (const I2S::Pair& pair : attributes.to_pairs().value()) // throws naming a refused write
+info.attributes.version = I2S::kIfeAttributesVersion; // major << 8 | minor: 0.1 is 0x0001
+const auto pairs = attributes.to_pairs(); // named: a range-for over to_pairs().value() would read a destroyed temporary
+for (const I2S::Pair& pair : pairs.value()) // throws naming a refused write
     info.attributes[pair.key] = std::u8string(pair.value.begin(), pair.value.end());
 IrisSlide::Encoder encoder = IrisSlide::create_encoder(info);
 Iris::Result result = IrisSlide::dispatch_encoder(encoder); // fails naming a pair IFE cannot hold
@@ -110,9 +111,10 @@ Iris::Result result = IrisSlide::dispatch_encoder(encoder); // fails naming a pa
 
 I2S checks the keys and the value text; the encoder checks only what IFE's
 attribute block requires (ASCII keys, UTF-8 values, sizes) and refuses
-version 0. How the attribute block's 16-bit VERSION carries an I2S version is
-not yet defined: `major << 8 | minor` is the proposal in open question 8 of
-[development/WBS.md](development/WBS.md).
+version 0. The attribute block's 16-bit VERSION carries the I2S version as
+`major << 8 | minor` (decided 2026-11-25, and stated in IFE's ife-attributes
+clause), which the header emits as `I2S::kIfeAttributesVersion`; 0 is an
+unversioned claim, which IFE reads as free text.
 
 ## Reading attributes
 
