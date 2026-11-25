@@ -570,7 +570,7 @@ not define, under `METADATA_I2S`.
     `ctest --preset debug` 4 of 4, `[Identity_07]` 29 of 29 assertions); the
     README's example (c) compiles with `-fsyntax-only -Wall -Wextra
     -Wconversion` against I2S's headers and Iris-Headers at 9fa8a26 [71588f5](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/commit/71588f514551375954d83b3e6cfdb43b865bc790)
-- [x] **IfeAttributesVersion_7.4** — the header emits the I2S version as IFE's
+- [x] **IfeAttributesVersion_7.4** — commit [61ca0b6](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/commit/61ca0b6660be1c2d8d31337d220aa79607cf859f). the header emits the I2S version as IFE's
   `ATTRIBUTES.VERSION` carries it under `METADATA_I2S`, `major << 8 | minor`
   (Decision_14): `inline constexpr std::uint16_t kIfeAttributesVersion`,
   documented, right after `kVersionMinor`; the generator refuses a major or
@@ -581,10 +581,10 @@ not define, under `METADATA_I2S`.
   - [x] Red: `uv run pytest`, 3 failed, 17 passed (the constant missing after
     `kVersionMinor`; a minor and a major of 256 accepted, failing at "0.256 is
     not the newest revision"); the build of `keys_tests.cpp`: "no member named
-    'kIfeAttributesVersion' in namespace 'I2S'"
+    'kIfeAttributesVersion' in namespace 'I2S'" [892e897](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/commit/892e897720d3f557b450cb4c0a95a66d68ac8397)
   - [x] Green: `uv run pytest` 73 passed; `cmake --workflow --preset gates` 20
     of 20; example (c) compiles with `-fsyntax-only -Wall -Wextra -Wconversion`
-    against `I2S.hpp` and Iris-Headers at 9fa8a26
+    against `I2S.hpp` and Iris-Headers at 9fa8a26 [61ca0b6](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/commit/61ca0b6660be1c2d8d31337d220aa79607cf859f)
 - [ ] **IrisSlideAllowlist_7.2** — Iris-Slide consumes the `i2s` CMake target
   by FetchContent at a pinned commit and uses `I2S::key_from_name` as its
   attribute allowlist; red: an encode with a key I2S does not define is
