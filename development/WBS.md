@@ -321,7 +321,7 @@ multiplicity and DICOM attribute; the first screen of `I2S_Attributes.hpp` is
 declarations; the gates green. Committed to `feature/SpecScaffold_1`, through
 pull request #1 (Decision_08).
 
-- [x] **VocabularyFirst_9.1** — `generator/emit/cpp.py` writes, right after the
+- [x] **VocabularyFirst_9.1** — commit b420ab9. `generator/emit/cpp.py` writes, right after the
   version constants, the `Key` enumeration, `TypedKey` and namespace
   `I2S::Attribute` (one constant per key, then per short name) as aligned
   one-line rows whose trailing `///<` comment (value type, VR, multiplicity,
@@ -337,7 +337,7 @@ pull request #1 (Decision_08).
     `i2s_compile_fail_flat_spelling` passes on `error: no member named
     'Manufacturer' in namespace 'I2S'; did you mean
     'I2S::Attribute::Manufacturer'?`
-- [x] **PublicSurfaceFirst_9.2** — `include/I2S_Attributes.hpp` (174 lines, from
+- [x] **PublicSurfaceFirst_9.2** — commit b420ab9. `include/I2S_Attributes.hpp` (174 lines, from
   888) holds the declarations with one-line documentation: `Time`, `Value`,
   `ValueOf`, `Error`, `Result`, `Pair`, `Element`, `Slot`, `Attributes`,
   `is_phi`. The concepts its declarations are constrained on are in
@@ -348,7 +348,7 @@ pull request #1 (Decision_08).
   - [x] Green: `i2s_attributes_tests` 17 of 17 earlier cases, the four
     earlier compile-fail cases still naming their concepts (clang: `'const
     char (&)[10]' does not satisfy 'DateTimeValue'`)
-- [x] **DicomSource_9.3** — `I2S::Attributes::from_dicom(lookup)`: `lookup` is
+- [x] **DicomSource_9.3** — commit b420ab9. `I2S::Attributes::from_dicom(lookup)`: `lookup` is
   any callable from `I2S::DicomTag` to `std::optional<std::string>` (the
   concept `DicomLookup`), called once per key that has a DICOM attribute;
   trailing padding spaces are dropped (PS3.5 2026e section 6.2 pads a string
@@ -360,7 +360,7 @@ pull request #1 (Decision_08).
   - [x] Red: `error: no member named 'from_dicom' in 'I2S::Attributes'`
   - [x] Green: `[DicomSource_01]`, 2 cases, 18 assertions; all attributes
     tests 19 cases, 110 assertions
-- [x] **ReadmeExamples_9.4** — the README's three examples in order: writing
+- [x] **ReadmeExamples_9.4** — commit b420ab9. the README's three examples in order: writing
   attributes; writing them from a DICOM file with DCMTK 3.7.1 (released
   2026-10-15; `DcmFileFormat::loadFile(const OFFilename&, …)`,
   `getDataset()`, `DcmItem::findAndGetOFStringArray(const DcmTagKey&,
