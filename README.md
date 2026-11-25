@@ -6,13 +6,8 @@ and when it was scanned. Each fact is a named key with a stated value type,
 its DICOM counterpart where one exists, and an identity class saying whether
 it can identify a person.
 
-The specification is a versioned, append-only JSON document (`spec/`) that a
-generator (`generator/`) compiles into a C++20 header and a readable
-specification document, as the Iris File Extension (IFE) does with its own
-`spec/*.json`. A key that is renamed in the JSON breaks every program that
-uses its old name at compile time, so the JSON stays the one source.
-
-## Provenance
+## Providence
+**Iris splits acquisition metadata from optional patient information**
 
 I2S records what the scanner knows at scan time, including what it reads from
 the slide's label. Those facts never change, so they are written once into the
@@ -26,8 +21,7 @@ which can be removed without touching the image. DICOM keeps both in one
 record; mutable clinical metadata inside an immutable image container carries
 more risk than benefit [1, 2].
 
-The numbers a renderer needs (pixel spacing, magnification, focal planes) are
-part of the IFE format itself, not I2S keys.
+The values that a renderer needs (pixel spacing, magnification, focal planes) and that are integral to the proper display of an image are part of the IFE format itself, not I2S keys.
 
 1. P. Gershkovich, "Wearing a fur coat in the summertime: Should digital
    pathology redefine medical imaging?" *Journal of Pathology Informatics* 18,
