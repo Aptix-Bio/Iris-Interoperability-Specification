@@ -460,7 +460,7 @@ that prefix alone includes `<I2S.hpp>` and runs; the gates green. Committed to
   - [x] Green: `i2s_install` passed; `cmake --workflow --preset gates` 20 of
     20 (from 17: `i2s_two_units`, `i2s_missing_implementation_fails_to_link`,
     `i2s_install`)
-- [x] **VrExamplesInDocs_10.5** — a VR's example is documentation, not source
+- [x] **VrExamplesInDocs_10.5** — commit [6f1daf2](https://github.com/Aptix-Bio/Iris-Interoperability-Specification/commit/6f1daf2d556030bb299fe1c4b747fd75a23e86be). A VR's example is documentation, not source
   (Decision_15): `VrInfo` loses its `example` field and each `kVrs` row
   carries its example as the comment above it; the tests read the examples
   from `I2S_VrExamples.hpp`, generated beside `I2S.hpp` and never installed
